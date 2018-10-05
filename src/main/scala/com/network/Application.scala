@@ -1,8 +1,12 @@
 package com.network
 
+import java.util.concurrent.TimeUnit
+
 import com.network.connection.Link
 import com.network.manager.Network
 import com.network.system.node.Node
+
+import scala.concurrent.duration.FiniteDuration
 
 object Application extends App {
 
@@ -13,6 +17,8 @@ object Application extends App {
   val router2 = network.routerOf(Node("2"))
   val router3 = network.routerOf(Node("3"))
   val router4 = network.routerOf(Node("4"))
+
+  router3.shutDown(FiniteDuration(217457, TimeUnit.MICROSECONDS))
 
   network.connect(router4, router1)(Link(532, 0.076792222))
   network.connect(router4, router2)(Link(669, 0.133467327))

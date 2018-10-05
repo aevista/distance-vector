@@ -10,7 +10,7 @@ import com.network.system.state.{Idle, Running, State}
 import com.network.util.Route
 
 import scala.collection.{mutable => m}
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 
 case class Router private[system](node: Node, network: Network) extends Routing(network) {
 
@@ -32,12 +32,12 @@ case class Router private[system](node: Node, network: Network) extends Routing(
       } yield advertise(DvPacket(dest, weight)))
   }
 
-  final def shutDown(time: FiniteDuration): Unit = state match {
+  final def shutDown(time: Duration): Unit = state match {
     case Idle =>
     case Running =>
       scheduleOnce(time)(for {
-      (_, Route(endPoint, _)) <- table
-    } yield endPoint.close(time))
+        (_, Route(endPoint, _)) <- table
+      } yield endPoint.close(time))
       state = Idle
   }
 
@@ -53,6 +53,7 @@ case class Router private[system](node: Node, network: Network) extends Routing(
 
     case DvPacket(dest, weight) => table.get(dest) match {
       case Some(Route(nh, _)) if weight == Connection.CLOSED && nh == endPoint =>
+        println(s"${node.id} removing connection to $dest")
         table.remove(dest)
         advertise(DvPacket(dest, Connection.CLOSED))
 

@@ -1,7 +1,7 @@
 package com.network.control
 
 object Control {
-  def apply[A](): Control[A,A] =
+  def apply[A](): Control[A ,A] =
     new Control[A, A](a => (cb: A => Unit) => cb(a))
 
   def process[A, V](a: => A): Control[A, V] =

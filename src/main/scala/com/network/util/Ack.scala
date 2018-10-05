@@ -1,5 +1,5 @@
 package com.network.util
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.Duration
 
-case class Ack(time: FiniteDuration)
+case class Ack(time: Duration)

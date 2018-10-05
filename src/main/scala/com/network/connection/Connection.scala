@@ -4,7 +4,7 @@ import com.network.connection.state.{Closed, Opened, State}
 import com.network.system.node.{Node, Router}
 import com.network.packet.{DvPacket, NetworkPacket}
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.Duration
 
 object Connection {
 
@@ -23,7 +23,7 @@ class Connection(router1: Router, router2: Router, link: Link) {
     def node: Node = router2.node
     def link: Link = Connection.this.link
     def bind(): Unit = router1.init(this)
-    def close(time: FiniteDuration): Unit = state match {
+    def close(time: Duration): Unit = state match {
       case Opened =>
         send(NetworkPacket(DvPacket(node.id, Connection.CLOSED), time))
         state = Closed
@@ -39,7 +39,7 @@ class Connection(router1: Router, router2: Router, link: Link) {
       def node: Node = router1.node
       def link: Link = Connection.this.link
       def bind(): Unit = router2.init(this)
-      def close(time: FiniteDuration): Unit = state match {
+      def close(time: Duration): Unit = state match {
         case Opened =>
           send(NetworkPacket(DvPacket(node.id, Connection.CLOSED), time))
           state = Closed

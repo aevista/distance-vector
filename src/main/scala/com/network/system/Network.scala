@@ -9,7 +9,7 @@ import com.network.util.{Ack, Triggered}
 
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.util.{Success, Try}
 
 class Network {
@@ -42,10 +42,10 @@ class Network {
     r <- Set(router1, router2)
   } yield r.run()
 
-  final def process(): FiniteDuration = {
-    priority.foreach(println)
+  final def process(): Duration = {
+
     @tailrec
-    def process(elapsedTime: FiniteDuration): FiniteDuration = Try(priority.dequeue()) match {
+    def process(elapsedTime: Duration): Duration = Try(priority.dequeue()) match {
       case Success(event) if priority.exists(_.reason == Triggered) =>
         event.control.process(Ack(event.elapsedTime))
         process(event.elapsedTime)

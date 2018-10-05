@@ -3,7 +3,7 @@ package com.network.connection
 import com.network.system.node.Node
 import com.network.packet.NetworkPacket
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.Duration
 
 case object EndPoint {
 
@@ -13,7 +13,7 @@ case object EndPoint {
     def bind(): Unit = {}
     def receive(packet: NetworkPacket): Unit = {}
     def send(packet: NetworkPacket): Unit = {}
-    def close(time: FiniteDuration): Unit = {}
+    def close(time: Duration): Unit = {}
   }
 }
 
@@ -24,7 +24,7 @@ trait EndPoint {
   def bind(): Unit
   def receive(packet: NetworkPacket): Unit
   def send(packet: NetworkPacket): Unit
-  def close(time: FiniteDuration): Unit
+  def close(time: Duration): Unit
 
   override def toString: String =
     s"EndPoint(${node.id})"

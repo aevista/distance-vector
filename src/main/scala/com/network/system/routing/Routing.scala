@@ -9,20 +9,20 @@ import com.network.manager.Network
 import com.network.packet.{DvPacket, NetworkPacket}
 import com.network.util.{Ack, Periodic, Reason, Triggered}
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 
 abstract class Routing(network: Network) {
 
-  private var currentTime: FiniteDuration = FiniteDuration(0, TimeUnit.SECONDS)
+  private var currentTime: Duration = FiniteDuration(0, TimeUnit.SECONDS)
 
   final def incoming(packet: NetworkPacket)(endPoint: EndPoint): Unit = {
     currentTime = packet.elapsedTime
     receive(packet.dvPacket)(endPoint)
   }
 
-  final protected def schedule(time: FiniteDuration)(event: => Unit): Unit = {
+  final protected def schedule(time: Duration)(event: => Unit): Unit = {
 
-    def update(elapsedTime: FiniteDuration): Unit = {
+    def update(elapsedTime: Duration): Unit = {
       val control = Control[Ack]()
         .andThen(_ => event)
         .andThen(ack => update(ack.time + time))
@@ -33,7 +33,7 @@ abstract class Routing(network: Network) {
     update(time)
   }
 
-  final protected def scheduleOnce(time: FiniteDuration)(event: => Unit): Unit = {
+  final protected def scheduleOnce(time: Duration)(event: => Unit): Unit = {
     publish(Control().andThen(_ => event), time, Triggered)
   }
 
@@ -44,7 +44,7 @@ abstract class Routing(network: Network) {
     publish(control, currentTime + endPoint.link.delay, Triggered)
   }
 
-  final private def publish(control: Control[Ack, Ack], time: FiniteDuration, reason: Reason): Unit = {
+  final private def publish(control: Control[Ack, Ack], time: Duration, reason: Reason): Unit = {
     network.publish(RoutingEvent(control, time, reason))
   }
 
