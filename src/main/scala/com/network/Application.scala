@@ -28,13 +28,10 @@ object Application extends App {
   network.connect(router0, router2)(Link(291, 0.217457185))
   network.connect(router1, router3)(Link(24, 0.208844158))
 
-
   network.initNetwork()
   network.startNetwork()
 
-  println(s"${Int.MinValue} is 2147483648")
-
-  println(s"converged at time ${network.process()}s")
+  println(s"converged at time ${network.process()}")
 
   println(network)
 

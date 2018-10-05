@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit
 
 import com.network.connection.Link
 import com.network.system.node.{Node, Router}
-import com.network.event.RoutingEvent
+import com.network.event.ControlEvent
 import com.network.util.{Ack, Triggered}
 
 import scala.annotation.tailrec
@@ -14,8 +14,8 @@ import scala.util.{Success, Try}
 
 class Network {
 
-  implicit val ord: Ordering[RoutingEvent] = Ordering.by((_: RoutingEvent).elapsedTime).reverse
-  private val priority = m.PriorityQueue[RoutingEvent]()
+  implicit val ord: Ordering[ControlEvent] = Ordering.by((_: ControlEvent).elapsedTime).reverse
+  private val events = m.PriorityQueue[ControlEvent]()
 
   private val table = m.Map.empty[Router, m.Map[Router, Link]]
     .withDefaultValue(m.Map.empty[Router, Link])
@@ -26,9 +26,9 @@ class Network {
     table.update(router1, table(router1).updated(router2, link))
   }
 
-  final def publish(event: RoutingEvent): Unit = {
+  final def publish(event: ControlEvent): Unit = {
     println(s"published event $event")
-    priority.enqueue(event)
+    events.enqueue(event)
   }
 
   final def initNetwork(): Unit =  for {
@@ -45,8 +45,8 @@ class Network {
   final def process(): Duration = {
 
     @tailrec
-    def process(elapsedTime: Duration): Duration = Try(priority.dequeue()) match {
-      case Success(event) if priority.exists(_.reason == Triggered) =>
+    def process(elapsedTime: Duration): Duration = Try(events.dequeue()) match {
+      case Success(event) if events.exists(_.reason == Triggered) =>
         event.control.process(Ack(event.elapsedTime))
         process(event.elapsedTime)
       case _ => elapsedTime
