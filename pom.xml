@@ -9,9 +9,7 @@
     <version>1.0-SNAPSHOT</version>
 
     <properties>
-        <scala.build>2.12</scala.build>
         <scala.version>2.12.6</scala.version>
-        <akka.version>2.5.16</akka.version>
     </properties>
 
     <dependencies>
@@ -41,7 +39,6 @@
                     <scalaVersion>${scala.version}</scalaVersion>
                 </configuration>
             </plugin>
-
         </plugins>
     </build>
 
