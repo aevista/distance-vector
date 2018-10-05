@@ -24,9 +24,11 @@ class Connection(router1: Router, router2: Router, link: Link) {
     def node: Node = router2.node
     def link: Link = Connection.this.link
     def bind(): Unit = router1.init(this)
-    def close(time: FiniteDuration): Unit = {
-      send(NetworkPacket(DvPacket(node.id, Connection.CLOSED), time))
-      state = Closed
+    def close(time: FiniteDuration): Unit = state match {
+      case Opened =>
+        send(NetworkPacket(DvPacket(node.id, Connection.CLOSED), time))
+        state = Closed
+      case Closed =>
     }
     def receive(packet: NetworkPacket): Unit = router1.incoming(packet)(this)
     def send(packet: NetworkPacket): Unit = state match {
@@ -38,9 +40,11 @@ class Connection(router1: Router, router2: Router, link: Link) {
       def node: Node = router1.node
       def link: Link = Connection.this.link
       def bind(): Unit = router2.init(this)
-      def close(time: FiniteDuration): Unit = {
-        send(NetworkPacket(DvPacket(node.id, Connection.CLOSED), time))
-        state = Closed
+      def close(time: FiniteDuration): Unit = state match {
+        case Opened =>
+          send(NetworkPacket(DvPacket(node.id, Connection.CLOSED), time))
+          state = Closed
+        case Closed =>
       }
       def receive(packet: NetworkPacket): Unit = router2.incoming(packet)(this)
       def send(packet: NetworkPacket): Unit = state match {

@@ -7,6 +7,7 @@ import com.network.system.routing.Routing
 import com.network.manager.Network
 import com.network.node.Node
 import com.network.packet.DvPacket
+import com.network.system.state.{Idle, Running, State}
 import com.network.util.Route
 
 import scala.collection.{mutable => m}
@@ -16,6 +17,7 @@ case class Router private[system](node: Node, network: Network) extends Routing(
 
   private val table = m.Map.empty[String, Route]
   private val self: EndPoint = EndPoint(node)
+  private var state: State = Idle
 
   final def init(endPoint: EndPoint): Unit = table.get(endPoint.node.id) match {
 
@@ -27,21 +29,25 @@ case class Router private[system](node: Node, network: Network) extends Routing(
       table.update(endPoint.node.id, Route(endPoint, endPoint.link.weight))
 
       schedule(FiniteDuration(1, TimeUnit.SECONDS))(for {
-        (dest, Route(_, weight)) <- table.toList
+        (dest, Route(_, weight)) <- table
       } yield advertise(DvPacket(dest, weight)))
   }
 
-  final def shutDown(time: FiniteDuration): Unit = {
-    scheduleOnce(time)(for {
-      (_, Route(endPoint, _)) <- table.toSet
+  final def shutDown(time: FiniteDuration): Unit = state match {
+    case Idle =>
+    case Running =>
+      scheduleOnce(time)(for {
+      (_, Route(endPoint, _)) <- table
     } yield endPoint.close(time))
+      state = Idle
   }
 
-  final def run(): Unit = {
-    for {
+  final def run(): Unit = state match {
+    case Running =>
+    case Idle => for {
       (dest, Route(_, weight)) <- table
     } yield advertise(DvPacket(dest, weight))
-
+    state = Running
     table.update(node.id, Route(self, 0))
   }
 

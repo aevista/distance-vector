@@ -15,7 +15,6 @@ case object EndPoint {
     def send(packet: NetworkPacket): Unit = {}
     def close(time: FiniteDuration): Unit = {}
   }
-
 }
 
 trait EndPoint {
