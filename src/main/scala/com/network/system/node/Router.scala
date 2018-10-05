@@ -3,7 +3,7 @@ package com.network.system.node
 import java.util.concurrent.TimeUnit
 
 import com.network.connection.{Connection, EndPoint}
-import com.network.manager.Network
+import com.network.system.Network
 import com.network.packet.DvPacket
 import com.network.system.routing.Routing
 import com.network.system.state.{Idle, Running, State}

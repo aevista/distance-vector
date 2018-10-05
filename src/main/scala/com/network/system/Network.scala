@@ -1,4 +1,4 @@
-package com.network.manager
+package com.network.system
 
 import java.util.concurrent.TimeUnit
 

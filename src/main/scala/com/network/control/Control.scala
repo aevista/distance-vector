@@ -25,8 +25,7 @@ class Control[A, V] private(private val control: V => (A => Unit) => Unit) {
   def process(v: V): Unit =
     control(v)(identity[A])
 
-  override def toString: String =
-    s"Control()"
+  override def toString: String = "Control()"
 
 }
 

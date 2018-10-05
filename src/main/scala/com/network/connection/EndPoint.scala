@@ -26,6 +26,5 @@ trait EndPoint {
   def send(packet: NetworkPacket): Unit
   def close(time: Duration): Unit
 
-  override def toString: String =
-    s"EndPoint(${node.id})"
+  override def toString: String = s"EndPoint(${node.id})"
 }

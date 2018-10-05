@@ -3,7 +3,7 @@ package com.network
 import java.util.concurrent.TimeUnit
 
 import com.network.connection.Link
-import com.network.manager.Network
+import com.network.system.Network
 import com.network.system.node.Node
 
 import scala.concurrent.duration.FiniteDuration

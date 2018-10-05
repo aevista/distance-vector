@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit
 import com.network.connection.EndPoint
 import com.network.control.Control
 import com.network.event.ControlEvent
-import com.network.manager.Network
+import com.network.system.Network
 import com.network.packet.{DvPacket, NetworkPacket}
 import com.network.util.{Ack, Periodic, Reason, Triggered}
 
