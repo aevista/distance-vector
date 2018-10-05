@@ -18,9 +18,9 @@ case class Router private[system](node: Node, network: Network) extends Routing(
   private val self: EndPoint = EndPoint(node)
   private var state: State = Idle
 
-  final def init(endPoint: EndPoint): Unit = table.get(endPoint.node.id) match {
+  final def init(endPoint: EndPoint): Unit = table.values.find(_.nextHop.node == endPoint.node) match {
 
-    case Some(_) =>
+    case Some(Route(_, weight)) if weight != Connection.CLOSED =>
       println(s"${node.id} already connected to ${endPoint.node.id}")
 
     case None =>
