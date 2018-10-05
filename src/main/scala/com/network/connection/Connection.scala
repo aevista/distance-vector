@@ -1,8 +1,7 @@
 package com.network.connection
 
 import com.network.connection.state.{Closed, Opened, State}
-import com.network.system.Router
-import com.network.node.Node
+import com.network.system.node.{Node, Router}
 import com.network.packet.{DvPacket, NetworkPacket}
 
 import scala.concurrent.duration.FiniteDuration

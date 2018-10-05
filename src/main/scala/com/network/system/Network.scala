@@ -3,9 +3,8 @@ package com.network.manager
 import java.util.concurrent.TimeUnit
 
 import com.network.connection.Link
-import com.network.node.Node
+import com.network.system.node.{Node, Router}
 import com.network.event.RoutingEvent
-import com.network.system.Router
 import com.network.util.{Ack, Triggered}
 
 import scala.annotation.tailrec
@@ -47,7 +46,7 @@ class Network {
     priority.foreach(println)
     @tailrec
     def process(elapsedTime: FiniteDuration): FiniteDuration = Try(priority.dequeue()) match {
-      case Success(event) if priority.exists(_.reason == Triggered)=>
+      case Success(event) if priority.exists(_.reason == Triggered) =>
         event.control.process(Ack(event.elapsedTime))
         process(event.elapsedTime)
       case _ => elapsedTime
@@ -61,6 +60,5 @@ class Network {
       .toSet.toList.sortBy[String](_.node.id)(Ordering.String)
       .mkString("\n")
   }
-
 
 }

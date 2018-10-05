@@ -1,12 +1,11 @@
-package com.network.system
+package com.network.system.node
 
 import java.util.concurrent.TimeUnit
 
 import com.network.connection.{Connection, EndPoint}
-import com.network.system.routing.Routing
 import com.network.manager.Network
-import com.network.node.Node
 import com.network.packet.DvPacket
+import com.network.system.routing.Routing
 import com.network.system.state.{Idle, Running, State}
 import com.network.util.Route
 
@@ -48,7 +47,6 @@ case class Router private[system](node: Node, network: Network) extends Routing(
       (dest, Route(_, weight)) <- table
     } yield advertise(DvPacket(dest, weight))
     state = Running
-    table.update(node.id, Route(self, 0))
   }
 
   final override protected def receive(packet: DvPacket)(endPoint: EndPoint): Unit = packet match {
@@ -80,10 +78,10 @@ case class Router private[system](node: Node, network: Network) extends Routing(
   } yield route(packet)(endPoint)
 
   final override def toString: String = {
-    table.toList.sortBy(_._1)( Ordering.String.reverse)
-      .foldRight(s"Router ${node.id}") { case ((dest, Route(nextHop, weight)), str) =>
+    table.toList.sortBy(_._1)( Ordering.String)
+      .foldLeft(s"Router ${node.id}") { case (str, (dest, Route(nextHop, weight))) =>
         str + s"\n$dest | ${nextHop.node.id} | $weight"
-    }
+    }.concat("\n")
   }
 
 }

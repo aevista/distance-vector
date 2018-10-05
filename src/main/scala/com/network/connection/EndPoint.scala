@@ -1,6 +1,6 @@
 package com.network.connection
 
-import com.network.node.Node
+import com.network.system.node.Node
 import com.network.packet.NetworkPacket
 
 import scala.concurrent.duration.FiniteDuration

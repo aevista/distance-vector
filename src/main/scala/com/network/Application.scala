@@ -2,7 +2,7 @@ package com.network
 
 import com.network.connection.Link
 import com.network.manager.Network
-import com.network.node.Node
+import com.network.system.node.Node
 
 object Application extends App {
 
