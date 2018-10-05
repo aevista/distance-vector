@@ -32,7 +32,7 @@ case class Router private[system](node: Node, network: Network) extends Routing(
       } yield advertise(DvPacket(dest, weight)))
   }
 
-  final def shutDown(time: Duration): Unit = {
+  final def scheduleShutdown(time: Duration): Unit = {
     scheduleOnce(time)({ for {
       (dest, Route(endPoint, _)) <- table
       if endPoint != self

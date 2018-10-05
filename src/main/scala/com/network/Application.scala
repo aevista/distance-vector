@@ -18,7 +18,7 @@ object Application extends App {
   val router3 = network.routerOf(Node("3"))
   val router4 = network.routerOf(Node("4"))
 
-  router3.shutDown(FiniteDuration(500, TimeUnit.MICROSECONDS))
+  router3.scheduleShutdown(FiniteDuration(500, TimeUnit.MICROSECONDS))
 
   network.connect(router4, router1)(Link(532, 0.076792222))
   network.connect(router4, router2)(Link(669, 0.133467327))
