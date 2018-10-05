@@ -18,7 +18,7 @@ object Application extends App {
   val router3 = network.routerOf(Node("3"))
   val router4 = network.routerOf(Node("4"))
 
-  router3.shutDown(FiniteDuration(217457, TimeUnit.MICROSECONDS))
+  router3.shutDown(FiniteDuration(500, TimeUnit.MICROSECONDS))
 
   network.connect(router4, router1)(Link(532, 0.076792222))
   network.connect(router4, router2)(Link(669, 0.133467327))
@@ -31,6 +31,8 @@ object Application extends App {
 
   network.initNetwork()
   network.startNetwork()
+
+  println(s"${Int.MinValue} is 2147483648")
 
   println(s"converged at time ${network.process()}s")
 

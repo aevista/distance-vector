@@ -8,7 +8,7 @@ import scala.concurrent.duration.Duration
 
 object Connection {
 
-  val CLOSED: Int = Int.MaxValue
+  val CLOSED: Int = -999999
 
   def apply(router1: Router, router2: Router)(link: Link): Connection =
     new Connection(router1, router2, link)
@@ -24,15 +24,17 @@ class Connection(router1: Router, router2: Router, link: Link) {
     def link: Link = Connection.this.link
     def bind(): Unit = router1.init(this)
     def close(time: Duration): Unit = state match {
-      case Opened =>
-        send(NetworkPacket(DvPacket(node.id, Connection.CLOSED), time))
-        state = Closed
       case Closed =>
+      case Opened =>
+        send(NetworkPacket(DvPacket(router1.node.id, Connection.CLOSED), time))
+        receive(NetworkPacket(DvPacket(router2.node.id, Connection.CLOSED), time))
+        state = Closed
+        println(s"closed $this")
     }
     def receive(packet: NetworkPacket): Unit = router1.incoming(packet)(this)
     def send(packet: NetworkPacket): Unit = state match {
+      case Closed => println(s"$packet unable to send to $endPoint2")
       case Opened => endPoint2.receive(packet)
-      case Closed =>
     }
 
     private val endPoint2 = new EndPoint {
@@ -40,15 +42,17 @@ class Connection(router1: Router, router2: Router, link: Link) {
       def link: Link = Connection.this.link
       def bind(): Unit = router2.init(this)
       def close(time: Duration): Unit = state match {
-        case Opened =>
-          send(NetworkPacket(DvPacket(node.id, Connection.CLOSED), time))
-          state = Closed
         case Closed =>
+        case Opened =>
+          send(NetworkPacket(DvPacket(router2.node.id, Connection.CLOSED), time))
+          receive(NetworkPacket(DvPacket(router1.node.id, Connection.CLOSED), time))
+          state = Closed
+          println(s"closed $this")
       }
       def receive(packet: NetworkPacket): Unit = router2.incoming(packet)(this)
       def send(packet: NetworkPacket): Unit = state match {
+        case Closed => println(s"$packet unable to send to $endPoint1")
         case Opened => endPoint1.receive(packet)
-        case Closed =>
       }
     }
 
