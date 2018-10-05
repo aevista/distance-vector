@@ -5,6 +5,19 @@ import com.network.packet.NetworkPacket
 
 import scala.concurrent.duration.FiniteDuration
 
+case object EndPoint {
+
+  def apply(n: Node): EndPoint = new EndPoint {
+    def node: Node = n
+    def link: Link = Link(Connection.CLOSED, -1)
+    def bind(): Unit = {}
+    def receive(packet: NetworkPacket): Unit = {}
+    def send(packet: NetworkPacket): Unit = {}
+    def close(time: FiniteDuration): Unit = {}
+  }
+
+}
+
 trait EndPoint {
 
   def node: Node
@@ -14,4 +27,6 @@ trait EndPoint {
   def send(packet: NetworkPacket): Unit
   def close(time: FiniteDuration): Unit
 
+  override def toString: String =
+    s"EndPoint(${node.id})"
 }

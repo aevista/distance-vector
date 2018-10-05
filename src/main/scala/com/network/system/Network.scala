@@ -3,8 +3,9 @@ package com.network.manager
 import java.util.concurrent.TimeUnit
 
 import com.network.connection.Link
-import com.network.node.{Node, Router}
+import com.network.node.Node
 import com.network.event.RoutingEvent
+import com.network.system.Router
 import com.network.util.{Ack, Triggered}
 
 import scala.annotation.tailrec
@@ -14,7 +15,8 @@ import scala.util.{Success, Try}
 
 class Network {
 
-  private val priority = m.PriorityQueue[RoutingEvent]()(Ordering.by((_: RoutingEvent).elapsedTime).reverse)
+  implicit val ord: Ordering[RoutingEvent] = Ordering.by((_: RoutingEvent).elapsedTime).reverse
+  private val priority = m.PriorityQueue[RoutingEvent]()
 
   private val table = m.Map.empty[Router, m.Map[Router, Link]]
     .withDefaultValue(m.Map.empty[Router, Link])
@@ -54,8 +56,11 @@ class Network {
     process(FiniteDuration(0, TimeUnit.SECONDS))
   }
 
-  override def toString: String =
-    table.flatMap{ case (r1, e) => e.keys.toSet + r1}.toSet.mkString("\n")
+  override def toString: String = {
+    table.flatMap { case (r1, e) => e.keys.toSet + r1 }
+      .toSet.toList.sortBy[String](_.node.id)(Ordering.String)
+      .mkString("\n")
+  }
 
 
 }

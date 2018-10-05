@@ -1,31 +1,35 @@
-package com.network.node
+package com.network.system
 
 import java.util.concurrent.TimeUnit
 
 import com.network.connection.{Connection, EndPoint}
-import com.network.manager.{Network, Routing}
+import com.network.system.routing.Routing
+import com.network.manager.Network
+import com.network.node.Node
 import com.network.packet.DvPacket
 import com.network.util.Route
 
-import scala.collection.mutable
+import scala.collection.{mutable => m}
 import scala.concurrent.duration.FiniteDuration
 
-case class Router(node: Node, network: Network) extends Routing(network) {
+case class Router private[system](node: Node, network: Network) extends Routing(network) {
 
-  private val table = mutable.Map.empty[String, Route]
+  private val table = m.Map.empty[String, Route]
+  private val self: EndPoint = EndPoint(node)
 
-  final def init(endPoint: EndPoint): Unit = {
-    println(s"init $endPoint")
-    table.update(endPoint.node.id, Route(endPoint, endPoint.link.weight))
+  final def init(endPoint: EndPoint): Unit = table.get(endPoint.node.id) match {
 
-    schedule(FiniteDuration(1, TimeUnit.SECONDS))( for {
-      (dest, Route(_, weight)) <- table.toList
-    } yield advertise(DvPacket(dest, weight)))
+    case Some(_) =>
+      println(s"${node.id} already connected to ${endPoint.node.id}")
+
+    case None =>
+      println(s"${node.id} init $endPoint")
+      table.update(endPoint.node.id, Route(endPoint, endPoint.link.weight))
+
+      schedule(FiniteDuration(1, TimeUnit.SECONDS))(for {
+        (dest, Route(_, weight)) <- table.toList
+      } yield advertise(DvPacket(dest, weight)))
   }
-
-  final def run(): Unit = for {
-    (dest, Route(_, weight)) <- table
-  } yield advertise(DvPacket(dest, weight))
 
   final def shutDown(time: FiniteDuration): Unit = {
     scheduleOnce(time)(for {
@@ -33,7 +37,15 @@ case class Router(node: Node, network: Network) extends Routing(network) {
     } yield endPoint.close(time))
   }
 
-  final override protected def receive(packet: DvPacket): Unit = packet match {
+  final def run(): Unit = {
+    for {
+      (dest, Route(_, weight)) <- table
+    } yield advertise(DvPacket(dest, weight))
+
+    table.update(node.id, Route(self, 0))
+  }
+
+  final override protected def receive(packet: DvPacket)(endPoint: EndPoint): Unit = packet match {
 
     case DvPacket(dest, weight) => table.get(dest) match {
       case Some(Route(nh, _)) if weight == Connection.CLOSED && nh == endPoint =>
@@ -56,14 +68,16 @@ case class Router(node: Node, network: Network) extends Routing(network) {
 
   final private def advertise(packet: DvPacket): Unit = for {
     endPoint <- table.values.map(_.nextHop).toSet
-    if table.get(packet.dest).fold(true)(_.nextHop != endPoint)
+    if table.get(packet.dest).exists(_.nextHop != endPoint)
+    if endPoint != self
      _ = println(s"advertising $packet to ${endPoint.node.id} from ${node.id}")
   } yield route(packet)(endPoint)
 
-
-  final override def toString: String =
-    table.foldRight(s"Router ${node.id}"){ case ((dest, Route(nextHop, weight)), str) =>
+  final override def toString: String = {
+    table.toList.sortBy(_._1)( Ordering.String.reverse)
+      .foldRight(s"Router ${node.id}") { case ((dest, Route(nextHop, weight)), str) =>
         str + s"\n$dest | ${nextHop.node.id} | $weight"
     }
+  }
 
 }

@@ -1,10 +1,11 @@
-package com.network.manager
+package com.network.system.routing
 
 import java.util.concurrent.TimeUnit
 
 import com.network.connection.EndPoint
 import com.network.control.Control
 import com.network.event.RoutingEvent
+import com.network.manager.Network
 import com.network.packet.{DvPacket, NetworkPacket}
 import com.network.util.{Ack, Periodic, Reason, Triggered}
 
@@ -13,12 +14,10 @@ import scala.concurrent.duration.FiniteDuration
 abstract class Routing(network: Network) {
 
   private var currentTime: FiniteDuration = FiniteDuration(0, TimeUnit.SECONDS)
-  protected var endPoint: EndPoint =_
 
   final def incoming(packet: NetworkPacket)(endPoint: EndPoint): Unit = {
     currentTime = packet.elapsedTime
-    this.endPoint = endPoint
-    receive(packet.dvPacket)
+    receive(packet.dvPacket)(endPoint)
   }
 
   final protected def schedule(time: FiniteDuration)(event: => Unit): Unit = {
@@ -49,6 +48,6 @@ abstract class Routing(network: Network) {
     network.publish(RoutingEvent(control, time, reason))
   }
 
-  protected def receive(packet: DvPacket): Unit
+  protected def receive(packet: DvPacket)(endPoint: EndPoint): Unit
 
 }

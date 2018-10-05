@@ -1,12 +1,14 @@
 package com.network.connection
 
 import com.network.connection.state.{Closed, Opened, State}
-import com.network.node.{Node, Router}
+import com.network.system.Router
+import com.network.node.Node
 import com.network.packet.{DvPacket, NetworkPacket}
 
 import scala.concurrent.duration.FiniteDuration
 
 object Connection {
+
   val CLOSED: Int = Int.MaxValue
 
   def apply(router1: Router, router2: Router)(link: Link): Connection =
@@ -49,10 +51,12 @@ class Connection(router1: Router, router2: Router, link: Link) {
 
     println(s"connecting ${router1.node.id} to ${router2.node.id}")
 
-
     endPoint1.bind()
     endPoint2.bind()
   }
+
+  override def toString: String =
+    s"Connection(${router1.node.id} <-> ${router2.node.id})"
 
 }
 

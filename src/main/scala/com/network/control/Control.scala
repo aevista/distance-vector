@@ -4,26 +4,29 @@ object Control {
   def apply[A](): Control[A,A] =
     new Control[A, A](a => (cb: A => Unit) => cb(a))
 
-  def process[A, Any](a: => A): Control[A, Any] =
-    new Control[A, Any](_ => (cb: A => Unit) => cb(a))
+  def process[A, V](a: => A): Control[A, V] =
+    new Control[A, V](_ => (cb: A => Unit) => cb(a))
 }
 
-class Control[A, Any] private(private val control: Any => (A => Unit) => Unit) {
+class Control[A, V] private(private val control: V => (A => Unit) => Unit) {
 
-  def map[B](f: A => B): Control[B, Any] =
+  def map[B](f: A => B): Control[B, V] =
     flatMap(a => Control.process(f(a)))
 
-  def flatMap[B](f: A => Control[B, Any]): Control[B, Any] =
-    new Control[B,Any](any => cb => control(any){a => f(a).control(any)(cb)})
+  def flatMap[B](f: A => Control[B, V]): Control[B, V] =
+    new Control[B, V](v => cb => control(v){a => f(a).control(v)(cb)})
 
-  def filter(f: A => Boolean): Control[A, Any] =
-    new Control[A,Any](ack => cb => control(ack){a => Control.process(a).control(ack){a => if (f(a)) cb(a)}})
+  def filter(f: A => Boolean): Control[A, V] =
+    new Control[A, V](v => cb => control(v){a => if (f(a)) cb(a)})
 
-  def andThen[B](f: A => B): Control[A, Any] =
-    map(a => {f(a); a})
+  def andThen[B](f: A => B): Control[A, V] =
+    map(a => { f(a); a })
 
-  def process(any: Any): Unit =
-    control(any)(identity[A])
+  def process(v: V): Unit =
+    control(v)(identity[A])
+
+  override def toString: String =
+    s"Control()"
 
 }
 

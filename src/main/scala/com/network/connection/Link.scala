@@ -2,7 +2,7 @@ package com.network.connection
 
 import java.util.concurrent.TimeUnit
 
-import com.network.node.Router
+import com.network.system.Router
 
 import scala.concurrent.duration.FiniteDuration
 
