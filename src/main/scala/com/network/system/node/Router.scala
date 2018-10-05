@@ -23,7 +23,7 @@ case class Router private[system](node: Node, network: Network) extends Routing(
     case Some(Route(_, weight)) if weight != Connection.CLOSED =>
       println(s"${node.id} already connected to ${endPoint.node.id}")
 
-    case None =>
+    case _ =>
       println(s"${node.id} init $endPoint")
       table.update(endPoint.node, Route(endPoint, endPoint.link.weight))
 

@@ -16,25 +16,26 @@ object Connection {
 
 class Connection(router1: Router, router2: Router, link: Link) {
 
-  var state: State = Opened
+  var state1: State = Opened
+  var state2: State = Opened
 
   new EndPoint { endPoint1 =>
 
     def node: Node = router2.node
     def link: Link = Connection.this.link
     def bind(): Unit = router1.init(this)
-    def close(time: Duration): Unit = state match {
-      case Closed =>
-      case Opened =>
+    def close(time: Duration): Unit = (state1, state2) match {
+      case (Closed, _) | (_, Closed) =>
+      case _ =>
         send(NetworkPacket(DvPacket(router1.node, Connection.CLOSED), time))
-        state = Closed
+        state1 = Closed
         println(s"closed $this")
     }
     def receive(packet: NetworkPacket): Unit = router1.incoming(packet)(this)
-    def send(packet: NetworkPacket): Unit = state match {
-      case Closed =>
+    def send(packet: NetworkPacket): Unit = (state1, state2) match {
+      case (Closed, _) | (_, Closed) =>
         receive(NetworkPacket(DvPacket(node, Connection.CLOSED), packet.elapsedTime))
-      case Opened =>
+      case _ =>
         endPoint2.receive(packet)
     }
 
@@ -42,18 +43,18 @@ class Connection(router1: Router, router2: Router, link: Link) {
       def node: Node = router1.node
       def link: Link = Connection.this.link
       def bind(): Unit = router2.init(this)
-      def close(time: Duration): Unit = state match {
-        case Closed =>
-        case Opened =>
+      def close(time: Duration): Unit = (state1, state2) match {
+        case (Closed, _) | (_, Closed) =>
+        case _ =>
           send(NetworkPacket(DvPacket(router2.node, Connection.CLOSED), time))
-          state = Closed
+          state2 = Closed
           println(s"closed $this")
       }
       def receive(packet: NetworkPacket): Unit = router2.incoming(packet)(this)
-      def send(packet: NetworkPacket): Unit = state match {
-        case Closed =>
+      def send(packet: NetworkPacket): Unit = (state1, state2) match {
+        case (Closed, _) | (_, Closed) =>
           receive(NetworkPacket(DvPacket(node, Connection.CLOSED), packet.elapsedTime))
-        case Opened =>
+        case _ =>
           endPoint1.receive(packet)
       }
     }
