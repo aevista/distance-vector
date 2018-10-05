@@ -34,10 +34,9 @@ case class Router private[system](node: Node, network: Network) extends Routing(
 
   final def shutDown(time: Duration): Unit = {
     scheduleOnce(time)({ for {
-      (_, Route(endPoint, _)) <- table
+      (dest, Route(endPoint, _)) <- table
       if endPoint != self
-    } yield endPoint.close(time)
-      table.update(node.id, Route(self, Connection.CLOSED))
+    } yield { table.update(dest, Route(endPoint, Connection.CLOSED));  endPoint.close(time) }
       state = Idle
     })
   }
@@ -54,11 +53,11 @@ case class Router private[system](node: Node, network: Network) extends Routing(
   final override protected def receive(packet: DvPacket)(endPoint: EndPoint): Unit = packet match {
 
     case DvPacket(dest, weight) => table.get(dest) match {
-      case Some(Route(nh, _)) if nh == endPoint =>
-        val w = if (weight == Connection.CLOSED) weight else weight + endPoint.link.weight
+      case Some(Route(nh, w)) if nh == endPoint && w != weight =>
+        val newWeight = if (weight == Connection.CLOSED) weight else weight + endPoint.link.weight
         println(s"${node.id} removing connection to $dest")
-        table.update(dest, Route(endPoint, w))
-        advertise(DvPacket(dest, w))
+        table.update(dest, Route(endPoint, newWeight))
+        advertise(DvPacket(dest, newWeight))
 
       case Some(Route(_, w)) if weight + endPoint.link.weight < w =>
         println(s"${node.id} updating dest $dest with (nh: ${endPoint.node.id}, weight $weight)")
@@ -66,10 +65,10 @@ case class Router private[system](node: Node, network: Network) extends Routing(
         advertise(DvPacket(dest, weight + endPoint.link.weight))
 
       case None  =>
-        val w = if (weight == Connection.CLOSED) weight else weight + endPoint.link.weight
-        println(s"${node.id} adding dest $dest with (nh: ${endPoint.node.id}, weight $w)")
-        table.update(dest, Route(endPoint, w))
-        advertise(DvPacket(dest, w))
+        val newWeight = if (weight == Connection.CLOSED) weight else weight + endPoint.link.weight
+        println(s"${node.id} adding dest $dest with (nh: ${endPoint.node.id}, weight $newWeight)")
+        table.update(dest, Route(endPoint, newWeight))
+        advertise(DvPacket(dest, newWeight))
 
       case _ => println(s"${node.id} dropping dest $dest with (nh: ${endPoint.node.id}, weight $weight)")
     }

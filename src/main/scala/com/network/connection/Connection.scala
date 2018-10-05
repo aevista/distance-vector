@@ -27,14 +27,15 @@ class Connection(router1: Router, router2: Router, link: Link) {
       case Closed =>
       case Opened =>
         send(NetworkPacket(DvPacket(router1.node.id, Connection.CLOSED), time))
-        receive(NetworkPacket(DvPacket(router2.node.id, Connection.CLOSED), time))
         state = Closed
         println(s"closed $this")
     }
     def receive(packet: NetworkPacket): Unit = router1.incoming(packet)(this)
     def send(packet: NetworkPacket): Unit = state match {
-      case Closed => println(s"$packet unable to send to $endPoint2")
-      case Opened => endPoint2.receive(packet)
+      case Closed =>
+        receive(NetworkPacket(DvPacket(node.id, Connection.CLOSED), packet.elapsedTime))
+      case Opened =>
+        endPoint2.receive(packet)
     }
 
     private val endPoint2 = new EndPoint {
@@ -45,14 +46,15 @@ class Connection(router1: Router, router2: Router, link: Link) {
         case Closed =>
         case Opened =>
           send(NetworkPacket(DvPacket(router2.node.id, Connection.CLOSED), time))
-          receive(NetworkPacket(DvPacket(router1.node.id, Connection.CLOSED), time))
           state = Closed
           println(s"closed $this")
       }
       def receive(packet: NetworkPacket): Unit = router2.incoming(packet)(this)
       def send(packet: NetworkPacket): Unit = state match {
-        case Closed => println(s"$packet unable to send to $endPoint1")
-        case Opened => endPoint1.receive(packet)
+        case Closed =>
+          receive(NetworkPacket(DvPacket(node.id, Connection.CLOSED), packet.elapsedTime))
+        case Opened =>
+          endPoint1.receive(packet)
       }
     }
 
