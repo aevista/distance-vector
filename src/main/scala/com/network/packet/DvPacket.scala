@@ -1,4 +1,6 @@
 package com.network.packet
 
-case class DvPacket(dest: String, weight: Int)
+import com.network.system.node.Node
+
+case class DvPacket(dest: Node, weight: Int)
 

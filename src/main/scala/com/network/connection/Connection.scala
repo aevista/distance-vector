@@ -26,14 +26,14 @@ class Connection(router1: Router, router2: Router, link: Link) {
     def close(time: Duration): Unit = state match {
       case Closed =>
       case Opened =>
-        send(NetworkPacket(DvPacket(router1.node.id, Connection.CLOSED), time))
+        send(NetworkPacket(DvPacket(router1.node, Connection.CLOSED), time))
         state = Closed
         println(s"closed $this")
     }
     def receive(packet: NetworkPacket): Unit = router1.incoming(packet)(this)
     def send(packet: NetworkPacket): Unit = state match {
       case Closed =>
-        receive(NetworkPacket(DvPacket(node.id, Connection.CLOSED), packet.elapsedTime))
+        receive(NetworkPacket(DvPacket(node, Connection.CLOSED), packet.elapsedTime))
       case Opened =>
         endPoint2.receive(packet)
     }
@@ -45,14 +45,14 @@ class Connection(router1: Router, router2: Router, link: Link) {
       def close(time: Duration): Unit = state match {
         case Closed =>
         case Opened =>
-          send(NetworkPacket(DvPacket(router2.node.id, Connection.CLOSED), time))
+          send(NetworkPacket(DvPacket(router2.node, Connection.CLOSED), time))
           state = Closed
           println(s"closed $this")
       }
       def receive(packet: NetworkPacket): Unit = router2.incoming(packet)(this)
       def send(packet: NetworkPacket): Unit = state match {
         case Closed =>
-          receive(NetworkPacket(DvPacket(node.id, Connection.CLOSED), packet.elapsedTime))
+          receive(NetworkPacket(DvPacket(node, Connection.CLOSED), packet.elapsedTime))
         case Opened =>
           endPoint1.receive(packet)
       }
