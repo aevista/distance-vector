@@ -4,28 +4,26 @@ object Control {
   def apply[A](): Control[A,A] =
     new Control[A, A](a => (cb: A => Unit) => cb(a))
 
-  def success[A, Any](a: => A): Control[A, Any] =
+  def process[A, Any](a: => A): Control[A, Any] =
     new Control[A, Any](_ => (cb: A => Unit) => cb(a))
 }
 
-import Control._
-
-class Control[A, Any] private(private val future: Any => (A => Unit) => Unit) {
+class Control[A, Any] private(private val control: Any => (A => Unit) => Unit) {
 
   def map[B](f: A => B): Control[B, Any] =
-    flatMap(a => success(f(a)))
+    flatMap(a => Control.process(f(a)))
 
   def flatMap[B](f: A => Control[B, Any]): Control[B, Any] =
-    new Control[B,Any](any => cb => future(any){a => f(a).future(any)(cb)})
+    new Control[B,Any](any => cb => control(any){a => f(a).control(any)(cb)})
 
   def filter(f: A => Boolean): Control[A, Any] =
-    new Control[A,Any](ack => cb => future(ack){a => success(a).future(ack){a => if (f(a)) cb(a)}})
+    new Control[A,Any](ack => cb => control(ack){a => Control.process(a).control(ack){a => if (f(a)) cb(a)}})
 
   def andThen[B](f: A => B): Control[A, Any] =
     map(a => {f(a); a})
 
   def process(any: Any): Unit =
-    future(any)(identity[A])
+    control(any)(identity[A])
 
 }
 
