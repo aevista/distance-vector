@@ -18,7 +18,7 @@ object Application extends App {
   val router3 = network.routerOf(Node("3"))
   val router4 = network.routerOf(Node("4"))
 
-  router3.scheduleShutdown(FiniteDuration(300000, TimeUnit.MICROSECONDS))
+  router3.shutdown(FiniteDuration(300000, TimeUnit.MICROSECONDS))
 
   network.connect(router4, router1)(Link(532, 0.076792222))
   network.connect(router4, router2)(Link(669, 0.133467327))
@@ -28,10 +28,10 @@ object Application extends App {
   network.connect(router0, router2)(Link(291, 0.217457185))
   network.connect(router1, router3)(Link(24, 0.208844158))
 
-  network.initNetwork()
+  network.init()
   println(network)
 
-  network.startNetwork()
+  network.start()
 
   println(s"converged at time ${network.process()}")
 

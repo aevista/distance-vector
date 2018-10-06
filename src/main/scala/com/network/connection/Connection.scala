@@ -16,46 +16,47 @@ object Connection {
 
 class Connection(router1: Router, router2: Router, link: Link) {
 
-  var state: State = Opened
+  var state1: State = Closed
+  var state2: State = Closed
 
   new EndPoint { endPoint1 =>
 
     def node: Node = router2.node
     def link: Link = Connection.this.link
-    def bind(): Unit = router1.init(this)
+    private[connection] def bind(): Unit = router1.connect(this)
     def receive(packet: NetworkPacket): Unit = router1.incoming(packet)(this)
-    def send(packet: NetworkPacket): Unit = state match {
+    def send(packet: NetworkPacket): Unit = state2 match {
       case Closed =>
         receive(NetworkPacket(DvPacket(node, Connection.CLOSED), packet.elapsedTime))
       case _ =>
         endPoint2.receive(packet)
     }
-    def close(time: Duration): Unit = state match {
+    def close(): Unit = state1 match {
       case Closed =>
       case _ =>
-        send(NetworkPacket(DvPacket(router1.node, Connection.CLOSED), time))
-        state = Closed
+        state1 = Closed
         println(s"closed $this")
     }
+    def open(): Unit = state1 = Opened
 
     private val endPoint2 = new EndPoint {
       def node: Node = router1.node
       def link: Link = Connection.this.link
-      def bind(): Unit = router2.init(this)
+      private[connection] def bind(): Unit = router2.connect(this)
       def receive(packet: NetworkPacket): Unit = router2.incoming(packet)(this)
-      def send(packet: NetworkPacket): Unit = state match {
+      def send(packet: NetworkPacket): Unit = state1 match {
         case Closed =>
           receive(NetworkPacket(DvPacket(node, Connection.CLOSED), packet.elapsedTime))
         case _ =>
           endPoint1.receive(packet)
       }
-      def close(time: Duration): Unit = state match {
+      def close(): Unit = state2 match {
         case Closed =>
         case _ =>
-          send(NetworkPacket(DvPacket(router2.node, Connection.CLOSED), time))
-          state = Closed
+          state2 = Closed
           println(s"closed $this")
       }
+      def open(): Unit = state2 = Opened
     }
 
     println(s"connecting ${router1.node.id} to ${router2.node.id}")

@@ -31,12 +31,12 @@ class Network {
     events.enqueue(event)
   }
 
-  final def initNetwork(): Unit =  for {
+  final def init(): Unit =  for {
     (router1, entries) <- table
     (router2, link) <- entries
   } yield link.connect(router1, router2)
 
-  final def startNetwork(): Unit = for {
+  final def start(): Unit = for {
     (router1, entries) <- table
     (router2, _) <- entries
     r <- Set(router1, router2)

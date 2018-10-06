@@ -18,36 +18,42 @@ case class Router private[system](node: Node, network: Network) extends Routing(
   private val self: EndPoint = EndPoint(node)
   private var state: State = Idle
 
-  final def init(endPoint: EndPoint): Unit = table.values.find(_.nextHop.node == endPoint.node) match {
-
-    case Some(Route(_, weight)) if weight != Connection.CLOSED =>
-      println(s"${node.id} already connected to ${endPoint.node.id}")
-
-    case _ =>
-      println(s"${node.id} init $endPoint")
-      table.update(endPoint.node, Route(endPoint, endPoint.link.weight))
-
-      schedule(FiniteDuration(1, TimeUnit.SECONDS))(for {
-        (dest, Route(_, weight)) <- table
-      } yield advertise(DvPacket(dest, weight)))
-  }
-
-  final def scheduleShutdown(time: Duration): Unit = {
-    scheduleOnce(time)({ for {
-      (dest, Route(endPoint, _)) <- table
-      if endPoint != self
-    } yield { table.update(dest, Route(endPoint, Connection.CLOSED));  endPoint.close(time) }
-      state = Idle
-    })
-  }
-
-  final def run(): Unit = state match {
+  final def run(delay: Duration = Duration.Zero): Unit = state match {
     case Running =>
-    case Idle => for {
+    case Idle =>
+      scheduleOnce(delay)({
+        init()
+        state = Running
+        for {
+          (dest, Route(_, weight)) <- table
+        } yield advertise(DvPacket(dest, weight))
+      })
+  }
+
+  final def shutdown(time: Duration): Unit = state match {
+    case Idle =>
+    case Running =>
+      scheduleOnce(time)({ for {
+        (dest, Route(endPoint, _)) <- table
+        if endPoint != self
+        _ = table.update(dest, Route(endPoint, Connection.CLOSED))
+        _ = endPoint.close()
+      } yield route(DvPacket(node, Connection.CLOSED))(endPoint)
+        state = Idle
+      })
+  }
+
+  final private def init(): Unit = {
+    for {
+      (node, endPoint) <- endPoints
+      _ = endPoint.open()
+    } yield table.update(node, Route(endPoint, endPoint.link.weight))
+
+    table.update(node, Route(self, 0))
+
+    schedule(FiniteDuration(1, TimeUnit.SECONDS))(for {
       (dest, Route(_, weight)) <- table
-    } yield advertise(DvPacket(dest, weight))
-      table.update(node, Route(self, 0))
-      state = Running
+    } yield advertise(DvPacket(dest, weight)))
   }
 
   final override protected def receive(packet: DvPacket)(endPoint: EndPoint): Unit = packet match {
