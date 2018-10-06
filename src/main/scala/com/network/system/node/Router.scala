@@ -21,8 +21,8 @@ case class Router private[system](node: Node, network: Network) extends Routing(
   final def run(delay: Duration = Duration.Zero): Unit = scheduleOnce(delay)(state match {
     case Running =>
     case Idle =>
-      state = Running
       init()
+      state = Running
       for {
         (dest, Route(_, weight)) <- table
       } yield advertise(DvPacket(dest, weight))
