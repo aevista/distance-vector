@@ -29,6 +29,8 @@ object Application extends App {
   network.connect(router1, router3)(Link(24, 0.208844158))
 
   network.initNetwork()
+  println(network)
+
   network.startNetwork()
 
   println(s"converged at time ${network.process()}")
