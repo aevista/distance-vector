@@ -27,7 +27,7 @@ case class Router private[system](node: Node, network: Network) extends Routing(
       } yield advertise(DvPacket(dest, weight))
   })
 
-  final def shutdown(time: Duration): Unit = scheduleOnce(time)(state match {
+  final def shutdown(delay: Duration): Unit = scheduleOnce(delay)(state match {
     case Idle =>
     case Running => for {
       (dest, Route(endPoint, _)) <- table
