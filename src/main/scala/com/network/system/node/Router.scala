@@ -57,28 +57,25 @@ case class Router private[system](node: Node, network: Network) extends Routing(
     val advWeight = if (weight == Connection.CLOSED) weight else weight + endPoint.link.weight
 
     table.get(dest) match {
-      case Some(Route(nh, w)) => advWeight match {
+      case Some(Route(nh, w)) if nh != endPoint && advWeight == Connection.CLOSED && w != Connection.CLOSED =>
+        advertise(DvPacket(dest, w))
 
-        case Connection.CLOSED if nh != endPoint && w != Connection.CLOSED =>
-          advertise(DvPacket(dest, w))
-          
-        case _ if nh == endPoint && w != advWeight =>
-          table.update(dest, Route(endPoint, advWeight))
-          advertise(DvPacket(dest, advWeight))
+      case Some(Route(nh, w)) if nh == endPoint && w != advWeight =>
+        table.update(dest, Route(endPoint, advWeight))
+        advertise(DvPacket(dest, advWeight))
 
-        case _ if advWeight < w =>
-          println(s"${node.id} updating dest $dest with (nh: ${endPoint.node.id}, weight $weight)")
-          table.update(dest, Route(endPoint, advWeight))
-          advertise(DvPacket(dest, advWeight))
+      case Some(Route(_, w)) if advWeight < w =>
+        println(s"${node.id} updating dest $dest with (nh: ${endPoint.node.id}, weight $weight)")
+        table.update(dest, Route(endPoint, advWeight))
+        advertise(DvPacket(dest, advWeight))
 
-        case _ => println(s"${node.id} dropping dest $dest with (nh: ${endPoint.node.id}, weight $weight)")
-      }
+      case Some(_) =>
+        println(s"${node.id} dropping dest $dest with (nh: ${endPoint.node.id}, weight $weight)")
 
       case None =>
         println(s"${node.id} adding dest $dest with (nh: ${endPoint.node.id}, weight $advWeight)")
         table.update(dest, Route(endPoint, advWeight))
         advertise(DvPacket(dest, advWeight))
-
     }
   }
 
