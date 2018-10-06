@@ -61,8 +61,8 @@ case class Router private[system](node: Node, network: Network) extends Routing(
 
       case Some(Route(nh, w)) if w != Connection.CLOSED
         && advertisedWeight(packet)(endPoint) == Connection.CLOSED
-        && splitHorizon(nh.node).contains(endPoint) =>
-        route(DvPacket(dest, advertisedWeight(packet)(endPoint)))(endPoint)
+        && nh != endPoint =>
+        advertise(DvPacket(dest, advertisedWeight(packet)(endPoint)))
 
       case Some(Route(_, w)) if advertisedWeight(packet)(endPoint) < w =>
         println(s"${node.id} updating dest $dest with (nh: ${endPoint.node.id}, weight $weight)")
