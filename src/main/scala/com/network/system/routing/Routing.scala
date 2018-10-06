@@ -26,21 +26,21 @@ abstract class Routing(network: Network) {
     receive(packet.dvPacket)(endPoint)
   }
 
-  final protected def schedule(time: Duration)(event: => Unit): Unit = {
+  final protected def schedulePeriodic(period: Duration)(event: => Unit): Unit = {
 
     def update(elapsedTime: Duration): Unit = {
       val control = Control[Ack]()
         .andThen(_ => event)
-        .andThen(ack => update(ack.time + time))
+        .andThen(ack => update(ack.time + period))
 
       publish(control, elapsedTime, Periodic)
     }
 
-    update(time)
+    update(period)
   }
 
-  final protected def scheduleOnce(time: Duration)(event: => Unit): Unit = {
-    publish(Control().andThen(_ => event), time, Triggered)
+  final protected def scheduleOnce(delay: Duration)(event: => Unit): Unit = {
+    publish(Control().andThen(_ => event), delay, Triggered)
   }
 
   final protected def route(packet: DvPacket)(endPoint: EndPoint): Unit = {

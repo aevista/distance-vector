@@ -47,7 +47,7 @@ case class Router private[system](node: Node, network: Network) extends Routing(
 
     table.update(node, Route(self, 0))
 
-    schedule(FiniteDuration(1, TimeUnit.SECONDS))(for {
+    schedulePeriodic(FiniteDuration(1, TimeUnit.SECONDS))(for {
       (dest, Route(_, weight)) <- table
     } yield advertise(DvPacket(dest, weight)))
   }
