@@ -4,8 +4,6 @@ import com.network.connection.state.{Closed, Opened, State}
 import com.network.system.node.{Node, Router}
 import com.network.packet.{DvPacket, NetworkPacket}
 
-import scala.concurrent.duration.Duration
-
 object Connection {
 
   val CLOSED: Int = -999999

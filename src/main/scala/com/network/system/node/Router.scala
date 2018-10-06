@@ -15,6 +15,7 @@ import scala.concurrent.duration.{Duration, FiniteDuration}
 case class Router private[system](node: Node, network: Network) extends Routing(network) {
 
   private val table = m.Map.empty[Node, Route]
+  private val self: EndPoint = EndPoint(node)
   private var state: State = Idle
 
   final def run(delay: Duration = Duration.Zero): Unit = scheduleOnce(delay)(state match {
@@ -43,7 +44,7 @@ case class Router private[system](node: Node, network: Network) extends Routing(
       _ = endPoint.open()
     } yield table.update(node, Route(endPoint, endPoint.link.weight))
 
-    table.update(node, Route(EndPoint(node), 0))
+    table.update(node, Route(self, 0))
 
     schedulePeriodic(FiniteDuration(1, TimeUnit.SECONDS))(for {
       (dest, Route(_, weight)) <- table
@@ -53,9 +54,9 @@ case class Router private[system](node: Node, network: Network) extends Routing(
   final override protected def receive(packet: DvPacket)(endPoint: EndPoint): Unit = packet match {
 
     case DvPacket(dest, weight) => table.get(dest) match {
-      case Some(Route(nh, w)) if nh == endPoint && w != weight =>
+      case Some(Route(nh, w)) if nh == endPoint && Connection.CLOSED == weight =>
         val newWeight = if (weight == Connection.CLOSED) weight else weight + endPoint.link.weight
-        println(s"${node.id} removing connection to $dest")
+        println(s"lost connection to $dest with ($nh, $weight)")
         table.update(dest, Route(endPoint, newWeight))
         advertise(DvPacket(dest, newWeight))
 
@@ -76,7 +77,8 @@ case class Router private[system](node: Node, network: Network) extends Routing(
 
   final private def advertise(packet: DvPacket): Unit = for {
     endPoint <- splitHorizon(packet.dest)
-     _ = println(s"advertising $packet to ${endPoint.node.id} from ${node.id}")
+    if endPoint != self
+     _ = println(s"advertising $packet to ${endPoint.node.id} from ${node.id} with ${endPoint.link}")
   } yield route(packet)(endPoint)
 
   final private def splitHorizon(dest: Node): Set[EndPoint] = for {

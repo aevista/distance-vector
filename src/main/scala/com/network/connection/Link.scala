@@ -13,6 +13,8 @@ object Link {
 
 case class Link(weight: Int, delay: FiniteDuration) {
 
+  println(this)
+
   def connect(router1: Router, router2: Router): Connection =
     Connection(router1, router2)(this)
 
