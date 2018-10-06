@@ -59,9 +59,9 @@ case class Router private[system](node: Node, network: Network) extends Routing(
         table.update(dest, Route(endPoint, advertisedWeight(packet)(endPoint)))
         advertise(DvPacket(dest, advertisedWeight(packet)(endPoint)))
 
-      case Some(Route(nh, w)) if w != Connection.CLOSED
+      case Some(Route(nh, w)) if nh != endPoint
         && advertisedWeight(packet)(endPoint) == Connection.CLOSED
-        && nh != endPoint =>
+        && w != Connection.CLOSED =>
         advertise(DvPacket(dest, advertisedWeight(packet)(endPoint)))
 
       case Some(Route(_, w)) if advertisedWeight(packet)(endPoint) < w =>
