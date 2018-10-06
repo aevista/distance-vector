@@ -15,14 +15,13 @@ import scala.concurrent.duration.{Duration, FiniteDuration}
 case class Router private[system](node: Node, network: Network) extends Routing(network) {
 
   private val table = m.Map.empty[Node, Route]
-  private val self: EndPoint = EndPoint(node)
   private var state: State = Idle
 
   final def run(delay: Duration = Duration.Zero): Unit = scheduleOnce(delay)(state match {
     case Running =>
     case Idle =>
-      init()
       state = Running
+      init()
       for {
         (dest, Route(_, weight)) <- table
       } yield advertise(DvPacket(dest, weight))
@@ -32,7 +31,6 @@ case class Router private[system](node: Node, network: Network) extends Routing(
     case Idle =>
     case Running => for {
       (dest, Route(endPoint, _)) <- table
-      if endPoint != self
       _ = table.update(dest, Route(endPoint, Connection.CLOSED))
       _ = endPoint.close()
     } yield advertise(DvPacket(node, Connection.CLOSED))
@@ -45,7 +43,7 @@ case class Router private[system](node: Node, network: Network) extends Routing(
       _ = endPoint.open()
     } yield table.update(node, Route(endPoint, endPoint.link.weight))
 
-    table.update(node, Route(self, 0))
+    table.update(node, Route(EndPoint(node), 0))
 
     schedulePeriodic(FiniteDuration(1, TimeUnit.SECONDS))(for {
       (dest, Route(_, weight)) <- table
@@ -84,7 +82,6 @@ case class Router private[system](node: Node, network: Network) extends Routing(
   final private def splitHorizon(dest: Node): Set[EndPoint] = for {
     endPoint <- table.values.map(_.nextHop).toSet
     if table.get(dest).exists(_.nextHop != endPoint)
-    if endPoint != self
   } yield endPoint
 
   final override def toString: String = {
