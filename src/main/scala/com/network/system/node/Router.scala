@@ -18,28 +18,26 @@ case class Router private[system](node: Node, network: Network) extends Routing(
   private val self: EndPoint = EndPoint(node)
   private var state: State = Idle
 
-  final def run(delay: Duration = Duration.Zero): Unit =
-      scheduleOnce(delay)(state match {
-        case Running =>
-        case Idle =>
-          init()
-          state = Running
-          for {
-            (dest, Route(_, weight)) <- table
-          } yield advertise(DvPacket(dest, weight))
-      })
+  final def run(delay: Duration = Duration.Zero): Unit = scheduleOnce(delay)(state match {
+    case Running =>
+    case Idle =>
+      init()
+      state = Running
+      for {
+        (dest, Route(_, weight)) <- table
+      } yield advertise(DvPacket(dest, weight))
+  })
 
-  final def shutdown(time: Duration): Unit =
-    scheduleOnce(time)(state match {
-      case Idle =>
-      case Running => for {
-        (dest, Route(endPoint, _)) <- table
-        if endPoint != self
-        _ = table.update(dest, Route(endPoint, Connection.CLOSED))
-        _ = endPoint.close()
-      } yield advertise(DvPacket(node, Connection.CLOSED))
-        state = Idle
-    })
+  final def shutdown(time: Duration): Unit = scheduleOnce(time)(state match {
+    case Idle =>
+    case Running => for {
+      (dest, Route(endPoint, _)) <- table
+      if endPoint != self
+      _ = table.update(dest, Route(endPoint, Connection.CLOSED))
+      _ = endPoint.close()
+    } yield advertise(DvPacket(node, Connection.CLOSED))
+      state = Idle
+  })
 
   final private def init(): Unit = {
     for {
