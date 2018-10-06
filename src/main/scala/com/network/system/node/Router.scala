@@ -46,7 +46,7 @@ case class Router private[system](node: Node, network: Network) extends Routing(
 
     table.update(node, Route(self, 0))
 
-    schedulePeriodic(FiniteDuration(1, TimeUnit.SECONDS))(for {
+    schedulePeriodic(FiniteDuration(1, TimeUnit.SECONDS))( for {
       (dest, Route(_, weight)) <- table
     } yield advertise(DvPacket(dest, weight)))
   }
@@ -66,6 +66,10 @@ case class Router private[system](node: Node, network: Network) extends Routing(
 
       case Some(Route(_, w)) if advWeight < w =>
         println(s"${node.id} updating dest $dest with (nh: ${endPoint.node.id}, weight $weight)")
+        table.update(dest, Route(endPoint, advWeight))
+        advertise(DvPacket(dest, advWeight))
+
+      case Some(Route(_, w)) if w == Connection.CLOSED && advWeight != Connection.CLOSED =>
         table.update(dest, Route(endPoint, advWeight))
         advertise(DvPacket(dest, advWeight))
 
