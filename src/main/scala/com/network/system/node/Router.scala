@@ -54,27 +54,29 @@ case class Router private[system](node: Node, network: Network) extends Routing(
   final override protected def receive(packet: DvPacket)(endPoint: EndPoint): Unit = packet match {
 
     case DvPacket(dest, weight) => table.get(dest) match {
-      case Some(Route(nh, w)) if nh == endPoint && w != advertisedWeight(packet)(endPoint) =>
-        println(s"lost connection to $dest with ($nh, $weight)")
-        table.update(dest, Route(endPoint, advertisedWeight(packet)(endPoint)))
-        advertise(DvPacket(dest, advertisedWeight(packet)(endPoint)))
+      case Some(Route(nh, w)) => w match {
+          
+        case Connection.CLOSED if nh != endPoint && advertisedWeight(packet)(endPoint) != Connection.CLOSED =>
+          table.update(dest, Route(endPoint, advertisedWeight(packet)(endPoint)))
+          advertise(DvPacket(dest, advertisedWeight(packet)(endPoint)))
 
-      case Some(Route(nh, w)) if nh != endPoint
-        && advertisedWeight(packet)(endPoint) == Connection.CLOSED
-        && w != Connection.CLOSED =>
-        advertise(DvPacket(dest, advertisedWeight(packet)(endPoint)))
+        case _ if nh == endPoint && w != advertisedWeight(packet)(endPoint) =>
+          table.update(dest, Route(endPoint, advertisedWeight(packet)(endPoint)))
+          advertise(DvPacket(dest, advertisedWeight(packet)(endPoint)))
 
-      case Some(Route(_, w)) if advertisedWeight(packet)(endPoint) < w =>
-        println(s"${node.id} updating dest $dest with (nh: ${endPoint.node.id}, weight $weight)")
-        table.update(dest, Route(endPoint, advertisedWeight(packet)(endPoint)))
-        advertise(DvPacket(dest, advertisedWeight(packet)(endPoint)))
+        case _ if advertisedWeight(packet)(endPoint) < w =>
+          println(s"${node.id} updating dest $dest with (nh: ${endPoint.node.id}, weight $weight)")
+          table.update(dest, Route(endPoint, advertisedWeight(packet)(endPoint)))
+          advertise(DvPacket(dest, advertisedWeight(packet)(endPoint)))
 
-      case None  =>
+        case _ => println(s"${node.id} dropping dest $dest with (nh: ${endPoint.node.id}, weight $weight)")
+      }
+
+      case None =>
         println(s"${node.id} adding dest $dest with (nh: ${endPoint.node.id}, weight ${advertisedWeight(packet)(endPoint)})")
         table.update(dest, Route(endPoint, advertisedWeight(packet)(endPoint)))
         advertise(DvPacket(dest, advertisedWeight(packet)(endPoint)))
 
-      case _ => println(s"${node.id} dropping dest $dest with (nh: ${endPoint.node.id}, weight $weight)")
     }
   }
 
