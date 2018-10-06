@@ -51,18 +51,17 @@ case class Router private[system](node: Node, network: Network) extends Routing(
     } yield advertise(DvPacket(dest, weight)))
   }
 
-  final override protected def receive(packet: DvPacket)(endPoint: EndPoint): Unit = packet match {
+  final override protected def receive(packet: DvPacket)(endPoint: EndPoint): Unit = {
 
-    case DvPacket(dest, weight) =>
-      val advWeight = if (weight == Connection.CLOSED) weight else weight + endPoint.link.weight
+    val (dest, weight) = (packet.dest, packet.weight)
+    val advWeight = if (weight == Connection.CLOSED) weight else weight + endPoint.link.weight
 
-      table.get(dest) match {
-        case Some(Route(nh, w)) => w match {
+    table.get(dest) match {
+      case Some(Route(nh, w)) => advWeight match {
+
+        case Connection.CLOSED if nh != endPoint && w != Connection.CLOSED =>
+          advertise(DvPacket(dest, w))
           
-        case Connection.CLOSED if nh != endPoint && advWeight != Connection.CLOSED =>
-          table.update(dest, Route(endPoint, advWeight))
-          advertise(DvPacket(dest, advWeight))
-
         case _ if nh == endPoint && w != advWeight =>
           table.update(dest, Route(endPoint, advWeight))
           advertise(DvPacket(dest, advWeight))
