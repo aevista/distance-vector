@@ -54,26 +54,32 @@ case class Router private[system](node: Node, network: Network) extends Routing(
   final override protected def receive(packet: DvPacket)(endPoint: EndPoint): Unit = packet match {
 
     case DvPacket(dest, weight) => table.get(dest) match {
-      case Some(Route(nh, w)) if nh == endPoint && Connection.CLOSED == weight =>
-        val newWeight = if (weight == Connection.CLOSED) weight else weight + endPoint.link.weight
+      case Some(Route(nh, w)) if nh == endPoint && w != advertisedWeight(packet)(endPoint) =>
         println(s"lost connection to $dest with ($nh, $weight)")
-        table.update(dest, Route(endPoint, newWeight))
-        advertise(DvPacket(dest, newWeight))
+        table.update(dest, Route(endPoint, advertisedWeight(packet)(endPoint)))
+        advertise(DvPacket(dest, advertisedWeight(packet)(endPoint)))
 
-      case Some(Route(_, w)) if weight + endPoint.link.weight < w =>
+      case Some(Route(nh, w)) if w != Connection.CLOSED
+        && advertisedWeight(packet)(endPoint) == Connection.CLOSED
+        && splitHorizon(nh.node).contains(endPoint) =>
+        route(DvPacket(dest, advertisedWeight(packet)(endPoint)))(endPoint)
+
+      case Some(Route(_, w)) if advertisedWeight(packet)(endPoint) < w =>
         println(s"${node.id} updating dest $dest with (nh: ${endPoint.node.id}, weight $weight)")
-        table.update(dest, Route(endPoint, weight + endPoint.link.weight))
-        advertise(DvPacket(dest, weight + endPoint.link.weight))
+        table.update(dest, Route(endPoint, advertisedWeight(packet)(endPoint)))
+        advertise(DvPacket(dest, advertisedWeight(packet)(endPoint)))
 
       case None  =>
-        val newWeight = if (weight == Connection.CLOSED) weight else weight + endPoint.link.weight
-        println(s"${node.id} adding dest $dest with (nh: ${endPoint.node.id}, weight $newWeight)")
-        table.update(dest, Route(endPoint, newWeight))
-        advertise(DvPacket(dest, newWeight))
+        println(s"${node.id} adding dest $dest with (nh: ${endPoint.node.id}, weight ${advertisedWeight(packet)(endPoint)})")
+        table.update(dest, Route(endPoint, advertisedWeight(packet)(endPoint)))
+        advertise(DvPacket(dest, advertisedWeight(packet)(endPoint)))
 
       case _ => println(s"${node.id} dropping dest $dest with (nh: ${endPoint.node.id}, weight $weight)")
     }
   }
+
+  final private def advertisedWeight(packet: DvPacket)(endPoint: EndPoint): Int =
+    if (packet.weight == Connection.CLOSED) packet.weight else packet.weight + endPoint.link.weight
 
   final private def advertise(packet: DvPacket): Unit = for {
     endPoint <- splitHorizon(packet.dest)
