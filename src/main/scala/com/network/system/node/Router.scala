@@ -60,16 +60,16 @@ case class Router private[system](node: Node, network: Network) extends Routing(
 
     table.get(dest) match {
       case Some(Route(_, w)) if advWeight != Connection.CLOSED && w == Connection.CLOSED =>
-        println(s"${node.id} regained connection to ${dest} with $advWeight")
+        println(s"${node.id} regained connection to $dest with $advWeight")
         table.update(dest, Route(endPoint, advWeight))
         advertise(DvPacket(dest, advWeight))
 
       case Some(Route(nh, w)) if nh != endPoint && advWeight == Connection.CLOSED && w != Connection.CLOSED =>
-        println(s"${node.id} advertising alternative route to ${dest} with $advWeight")
+        println(s"${node.id} advertising alternative route to $dest with $advWeight")
         advertise(DvPacket(dest, w))
 
       case Some(Route(nh, w)) if nh == endPoint && w != advWeight =>
-        println(s"${node.id} updating new cost of route to ${dest} from ${nh.node.id} with $advWeight")
+        println(s"${node.id} updating new cost of route to $dest from ${nh.node.id} with $advWeight")
         table.update(dest, Route(endPoint, advWeight))
         advertise(DvPacket(dest, advWeight))
 
