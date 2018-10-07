@@ -47,7 +47,7 @@ abstract class Routing(network: Network) {
     val control = Control[Ack]()
       .andThen(ack => endPoint.send(NetworkPacket(packet, ack.time)))
 
-    println(s"routing $packet to ${endPoint.node} at $currentTime + ${endPoint.link.delay}")
+    println(s"routing $packet to ${endPoint.node} at ${currentTime + endPoint.link.delay}")
 
     publish(control, currentTime + endPoint.link.delay, Triggered)
   }

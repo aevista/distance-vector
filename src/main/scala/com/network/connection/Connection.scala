@@ -2,7 +2,7 @@ package com.network.connection
 
 import com.network.connection.state.{Closed, Opened, State}
 import com.network.system.node.{Node, Router}
-import com.network.packet.{DvPacket, NetworkPacket}
+import com.network.packet.NetworkPacket
 
 object Connection {
 
@@ -25,9 +25,7 @@ class Connection(router1: Router, router2: Router, link: Link) {
     def receive(packet: NetworkPacket): Unit = router1.incoming(packet)(this)
     def send(packet: NetworkPacket): Unit = state2 match {
       case Closed =>
-        receive(NetworkPacket(DvPacket(node, Connection.CLOSED), packet.elapsedTime))
-      case _ =>
-        endPoint2.receive(packet)
+      case Opened => endPoint2.receive(packet)
     }
     def close(): Unit = state1 match {
       case Closed =>
@@ -35,7 +33,10 @@ class Connection(router1: Router, router2: Router, link: Link) {
         state1 = Closed
         println(s"closed $this")
     }
-    def open(): Unit = state1 = Opened
+    def open(): Unit = {
+      state1 = Opened
+      println(s"opened $this")
+    }
 
     private val endPoint2 = new EndPoint {
       def node: Node = router1.node
@@ -44,9 +45,7 @@ class Connection(router1: Router, router2: Router, link: Link) {
       def receive(packet: NetworkPacket): Unit = router2.incoming(packet)(this)
       def send(packet: NetworkPacket): Unit = state1 match {
         case Closed =>
-          receive(NetworkPacket(DvPacket(node, Connection.CLOSED), packet.elapsedTime))
-        case _ =>
-          endPoint1.receive(packet)
+        case Opened => endPoint1.receive(packet)
       }
       def close(): Unit = state2 match {
         case Closed =>
@@ -54,7 +53,10 @@ class Connection(router1: Router, router2: Router, link: Link) {
           state2 = Closed
           println(s"closed $this")
       }
-      def open(): Unit = state2 = Opened
+      def open(): Unit = {
+        state2 = Opened
+        println(s"opened $this")
+      }
     }
 
     println(s"connecting ${router1.node.id} to ${router2.node.id}")

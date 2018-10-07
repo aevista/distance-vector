@@ -46,6 +46,8 @@ case class Router private[system](node: Node, network: Network) extends Routing(
 
     table.update(node, Route(self, 0))
 
+    println(toString)
+
     schedulePeriodic(FiniteDuration(1, TimeUnit.SECONDS))( for {
       (dest, Route(_, weight)) <- table
     } yield advertise(DvPacket(dest, weight)))
@@ -57,19 +59,22 @@ case class Router private[system](node: Node, network: Network) extends Routing(
     val advWeight = if (weight == Connection.CLOSED) weight else weight + endPoint.link.weight
 
     table.get(dest) match {
+      case Some(Route(_, w)) if advWeight != Connection.CLOSED && w == Connection.CLOSED =>
+        println(s"${node.id} regained connection to ${dest} with $advWeight")
+        table.update(dest, Route(endPoint, advWeight))
+        advertise(DvPacket(dest, advWeight))
+
       case Some(Route(nh, w)) if nh != endPoint && advWeight == Connection.CLOSED && w != Connection.CLOSED =>
+        println(s"${node.id} advertising alternative route to ${dest} with $advWeight")
         advertise(DvPacket(dest, w))
 
       case Some(Route(nh, w)) if nh == endPoint && w != advWeight =>
+        println(s"${node.id} updating new cost of route to ${dest} from ${nh.node.id} with $advWeight")
         table.update(dest, Route(endPoint, advWeight))
         advertise(DvPacket(dest, advWeight))
 
       case Some(Route(_, w)) if advWeight < w =>
         println(s"${node.id} updating dest $dest with (nh: ${endPoint.node.id}, weight $weight)")
-        table.update(dest, Route(endPoint, advWeight))
-        advertise(DvPacket(dest, advWeight))
-
-      case Some(Route(_, w)) if w == Connection.CLOSED && advWeight != Connection.CLOSED =>
         table.update(dest, Route(endPoint, advWeight))
         advertise(DvPacket(dest, advWeight))
 
