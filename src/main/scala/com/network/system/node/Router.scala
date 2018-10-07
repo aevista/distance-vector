@@ -69,12 +69,12 @@ case class Router private[system](node: Node, network: Network) extends Routing(
         advertise(DvPacket(dest, w))
 
       case Some(Route(nh, w)) if nh == endPoint && w != advWeight =>
-        println(s"${node.id} updating new cost of route to $dest from ${nh.node.id} with $advWeight")
+        println(s"${node.id} updating new cost of route to $dest from same hop ${nh.node.id} with $advWeight")
         table.update(dest, Route(endPoint, advWeight))
         advertise(DvPacket(dest, advWeight))
 
       case Some(Route(_, w)) if advWeight < w =>
-        println(s"${node.id} updating dest $dest with (nh: ${endPoint.node.id}, weight $weight)")
+        println(s"${node.id} updating dest $dest with new hop (nh: ${endPoint.node.id}, weight $weight)")
         table.update(dest, Route(endPoint, advWeight))
         advertise(DvPacket(dest, advWeight))
 
