@@ -31,9 +31,10 @@ case class Router private[system](node: Node, network: Network) extends Routing(
     case Idle =>
     case Running => for {
       (dest, Route(endPoint, _)) <- table
-      _ = table.update(dest, Route(endPoint, Connection.CLOSED))
+      if endPoint != self
+      _ = route(DvPacket(dest, Connection.CLOSED))(endPoint)
       _ = endPoint.close()
-    } yield advertise(DvPacket(node, Connection.CLOSED))
+    } yield table.update(dest, Route(endPoint, Connection.CLOSED))
       state = Idle
   })
 
@@ -47,7 +48,7 @@ case class Router private[system](node: Node, network: Network) extends Routing(
 
     println(toString)
 
-    schedulePeriodic(delay + FiniteDuration(1, TimeUnit.SECONDS))( for {
+    schedulePeriodic(delay, FiniteDuration(1, TimeUnit.SECONDS))( for {
       (dest, Route(_, weight)) <- table
     } yield advertise(DvPacket(dest, weight)))
   }
@@ -58,6 +59,11 @@ case class Router private[system](node: Node, network: Network) extends Routing(
     val advWeight = if (weight == Connection.CLOSED) weight else weight + endPoint.link.weight
 
     table.get(dest) match {
+      case Some(Route(nh, w)) if nh == endPoint && w != advWeight =>
+        println(s"${node.id} updating new cost of route to $dest from same hop ${nh.node.id} with $advWeight")
+        table.update(dest, Route(endPoint, advWeight))
+        advertise(DvPacket(dest, advWeight))
+
       case Some(Route(_, w)) if advWeight != Connection.CLOSED && w == Connection.CLOSED =>
         println(s"${node.id} regained connection to $dest with $advWeight")
         table.update(dest, Route(endPoint, advWeight))
@@ -66,11 +72,6 @@ case class Router private[system](node: Node, network: Network) extends Routing(
       case Some(Route(nh, w)) if nh != endPoint && advWeight == Connection.CLOSED && w != Connection.CLOSED =>
         println(s"${node.id} advertising alternative route to $dest with $advWeight")
         advertise(DvPacket(dest, w))
-
-      case Some(Route(nh, w)) if nh == endPoint && w != advWeight =>
-        println(s"${node.id} updating new cost of route to $dest from same hop ${nh.node.id} with $advWeight")
-        table.update(dest, Route(endPoint, advWeight))
-        advertise(DvPacket(dest, advWeight))
 
       case Some(Route(_, w)) if advWeight < w =>
         println(s"${node.id} updating dest $dest with new hop (nh: ${endPoint.node.id}, weight $weight)")

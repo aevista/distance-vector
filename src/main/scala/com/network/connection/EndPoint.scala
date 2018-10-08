@@ -1,5 +1,6 @@
 package com.network.connection
 
+import com.network.connection.state.{Closed, State}
 import com.network.system.node.Node
 import com.network.packet.NetworkPacket
 
@@ -15,6 +16,7 @@ case object EndPoint {
     def send(packet: NetworkPacket): Unit = {}
     def close(): Unit = {}
     def open(): Unit = {}
+    def state: State = Closed
   }
 }
 
@@ -27,6 +29,7 @@ trait EndPoint {
   def send(packet: NetworkPacket): Unit
   def close(): Unit
   def open(): Unit
+  def state: State
 
   override def toString: String = s"EndPoint($node, $link)"
 }

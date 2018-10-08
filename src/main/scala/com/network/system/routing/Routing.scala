@@ -2,7 +2,8 @@ package com.network.system.routing
 
 import java.util.concurrent.TimeUnit
 
-import com.network.connection.EndPoint
+import com.network.connection.{Connection, EndPoint}
+import com.network.connection.state.{Closed, Opened}
 import com.network.control.Control
 import com.network.event.ControlEvent
 import com.network.system.Network
@@ -28,7 +29,7 @@ abstract class Routing(network: Network) {
     receive(packet.dvPacket)(endPoint)
   }
 
-  final protected def schedulePeriodic(period: Duration)(event: => Unit): Unit = {
+  final protected def schedulePeriodic(delay: Duration, period: Duration)(event: => Unit): Unit = {
 
     def update(elapsedTime: Duration): Unit = {
       val control = Control[Ack]()
@@ -39,20 +40,21 @@ abstract class Routing(network: Network) {
       publish(control, elapsedTime, Periodic)
     }
 
-    update(period)
+    update(delay + period)
   }
 
   final protected def scheduleOnce(delay: Duration)(event: => Unit): Unit = {
     publish(Control().andThen(_ => event), delay, Triggered)
   }
 
-  final protected def route(packet: DvPacket)(endPoint: EndPoint): Unit = {
-    val control = Control[Ack]()
-      .andThen(ack => endPoint.send(NetworkPacket(packet, ack.time)))
+  final protected def route(packet: DvPacket)(endPoint: EndPoint): Unit = endPoint.state match {
+    case Closed =>
+    case _ =>
+      val control = Control[Ack]()
+        .andThen(ack => endPoint.send(NetworkPacket(packet, ack.time)))
 
-    println(s"routing $packet to ${endPoint.node} at ${currentTime + endPoint.link.delay}")
-
-    publish(control, currentTime + endPoint.link.delay, Triggered)
+      println(s"routing $packet to ${endPoint.node} at ${currentTime + endPoint.link.delay}")
+      publish(control, currentTime + endPoint.link.delay, Triggered)
   }
 
   final private def publish(control: Control[Ack, Ack], time: Duration, reason: Reason): Unit = {
