@@ -32,7 +32,7 @@ case class Router private[system](node: Node, network: Network) extends Routing(
     case Running => for {
       (dest, Route(endPoint, _)) <- table
       if endPoint != self
-      _ = route(DvPacket(dest, Connection.CLOSED))(endPoint)
+      _ = advertise(DvPacket(dest, Connection.CLOSED))
       _ = endPoint.close()
     } yield table.update(dest, Route(endPoint, Connection.CLOSED))
       state = Idle
