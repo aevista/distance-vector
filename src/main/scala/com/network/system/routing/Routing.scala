@@ -8,6 +8,7 @@ import com.network.event.ControlEvent
 import com.network.system.Network
 import com.network.packet.{DvPacket, NetworkPacket}
 import com.network.system.node.Node
+import com.network.system.state.{Idle, Running, State}
 import com.network.util.{Ack, Periodic, Reason, Triggered}
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
@@ -16,6 +17,7 @@ abstract class Routing(network: Network) {
 
   private var routes = Map.empty[Node, EndPoint]
   private var currentTime: Duration = FiniteDuration(0, TimeUnit.SECONDS)
+  protected var state: State = Idle
 
   final def connect(endPoint: EndPoint): Unit = {
     routes += endPoint.node -> endPoint
@@ -30,6 +32,7 @@ abstract class Routing(network: Network) {
 
     def update(elapsedTime: Duration): Unit = {
       val control = Control[Ack]()
+        .filter(_ => state == Running)
         .andThen(_ => event)
         .andThen(ack => update(ack.time + period))
 

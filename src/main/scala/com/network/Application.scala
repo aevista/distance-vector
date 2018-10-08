@@ -20,7 +20,7 @@ object Application extends App {
 
   router3.shutdown(FiniteDuration(300000, TimeUnit.MICROSECONDS))
   router2.shutdown(FiniteDuration(200000, TimeUnit.MICROSECONDS))
-  router3.run(FiniteDuration(400000, TimeUnit.MICROSECONDS))
+  //router3.run(FiniteDuration(400000, TimeUnit.MICROSECONDS))
   //router2.run(FiniteDuration(400000, TimeUnit.MICROSECONDS))
 
   network.connect(router4, router1)(Link(532, 0.076792222))

@@ -16,12 +16,11 @@ case class Router private[system](node: Node, network: Network) extends Routing(
 
   private val table = m.Map.empty[Node, Route]
   private val self: EndPoint = EndPoint(node)
-  private var state: State = Idle
 
   final def run(delay: Duration = Duration.Zero): Unit = scheduleOnce(delay)(state match {
     case Running =>
     case Idle =>
-      init()
+      init(delay)
       state = Running
       for {
         (dest, Route(_, weight)) <- table
@@ -38,7 +37,7 @@ case class Router private[system](node: Node, network: Network) extends Routing(
       state = Idle
   })
 
-  final private def init(): Unit = {
+  final private def init(delay: Duration): Unit = {
     for {
       (node, endPoint) <- endPoints
       _ = endPoint.open()
@@ -48,7 +47,7 @@ case class Router private[system](node: Node, network: Network) extends Routing(
 
     println(toString)
 
-    schedulePeriodic(FiniteDuration(1, TimeUnit.SECONDS))( for {
+    schedulePeriodic(delay + FiniteDuration(1, TimeUnit.SECONDS))( for {
       (dest, Route(_, weight)) <- table
     } yield advertise(DvPacket(dest, weight)))
   }

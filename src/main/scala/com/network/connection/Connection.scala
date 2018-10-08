@@ -27,16 +27,8 @@ class Connection(router1: Router, router2: Router, link: Link) {
       case Closed =>
       case Opened => endPoint2.receive(packet)
     }
-    def close(): Unit = state1 match {
-      case Closed =>
-      case _ =>
-        state1 = Closed
-        println(s"closed $this")
-    }
-    def open(): Unit = {
-      state1 = Opened
-      println(s"opened $this")
-    }
+    def close(): Unit = state1 = Closed
+    def open(): Unit = state1 = Opened
 
     private val endPoint2 = new EndPoint {
       def node: Node = router1.node
@@ -47,16 +39,10 @@ class Connection(router1: Router, router2: Router, link: Link) {
         case Closed =>
         case Opened => endPoint1.receive(packet)
       }
-      def close(): Unit = state2 match {
-        case Closed =>
-        case _ =>
-          state2 = Closed
-          println(s"closed $this")
-      }
-      def open(): Unit = {
-        state2 = Opened
-        println(s"opened $this")
-      }
+      def close(): Unit = state2 = Closed
+      def open(): Unit = state2 = Opened
+
+
     }
 
     println(s"connecting ${router1.node.id} to ${router2.node.id}")
