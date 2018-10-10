@@ -31,12 +31,12 @@ class Network {
     events.enqueue(event)
   }
 
-  final def initNetwork(): Unit =  for {
+  final def init(): Unit =  for {
     (router1, entries) <- table
     (router2, link) <- entries
   } yield link.connect(router1, router2)
 
-  final def startNetwork(): Unit = for {
+  final def start(): Unit = for {
     (router1, entries) <- table
     (router2, _) <- entries
     r <- Set(router1, router2)
@@ -55,7 +55,7 @@ class Network {
     process(FiniteDuration(0, TimeUnit.SECONDS))
   }
 
-  override def toString: String = {
+  override final def toString: String = {
     table.flatMap { case (r1, e) => e.keys.toSet + r1 }
       .toSet.toList.sortBy[String](_.node.id)(Ordering.String)
       .mkString("\n")

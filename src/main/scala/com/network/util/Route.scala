@@ -1,5 +1,5 @@
 package com.network.util
 
-import com.network.connection.EndPoint
+import com.network.system.node.Node
 
-case class Route(nextHop: EndPoint, weight: Int)
+case class Route(nextHop: Node, weight: Int)
