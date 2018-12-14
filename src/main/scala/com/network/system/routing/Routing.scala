@@ -44,8 +44,8 @@ abstract private[system] class Routing(node: Node, network: Network) {
 
   final def incoming(packet: NetworkPacket)(interface: Interface): Unit = state match {
     case Running =>
-      println(s"TIME ${"%10d".format(packet.elapsedTime.toMicros)}: $node receiving $packet from ${interface.node}")
       currentTime = packet.elapsedTime
+      println(s"TIME ${"%10d".format(currentTime.toMicros)}: $node receiving ${packet.dvPacket} from ${interface.node}")
       receive(packet.dvPacket)(interface)
     case Idle =>
   }
@@ -77,10 +77,9 @@ abstract private[system] class Routing(node: Node, network: Network) {
     val _state = state
     val control = Control[Ack]()
       .filter(_ => _state == Running)
-      .andThen(ack => println(s"TIME ${"%10d".format(ack.time.toMicros)}: $node routing $packet to ${interface.node}"))
       .andThen(ack => interface.send(NetworkPacket(packet, ack.time)))
 
-    println(s"TIME ${"%10d".format(currentTime.toMicros)}: $node scheduling route $packet to ${interface.node}")
+    println(s"TIME ${"%10d".format(currentTime.toMicros)}: $node routing $packet to ${interface.node}")
 
     publish(control, currentTime + interface.link.delay, Triggered)
   }
