@@ -25,6 +25,7 @@ abstract class Routing(node: Node, network: Network) {
   final protected def interfaces: Map[Node, Interface] = _interfaces
 
   final protected def init(): Unit = {
+    println(s"$node initializing")
     for {
       interface <- interfaces.values
       _ = interface.open()
@@ -33,6 +34,7 @@ abstract class Routing(node: Node, network: Network) {
   }
 
   final protected def terminate(): Unit = {
+    println(s"$node terminating")
     for {
       interface <- interfaces.values
       _ = interface.close()
@@ -40,9 +42,12 @@ abstract class Routing(node: Node, network: Network) {
     state = Idle
   }
 
-  final def incoming(packet: NetworkPacket)(endPoint: Interface): Unit = {
-    currentTime = packet.elapsedTime
-    receive(packet.dvPacket)(endPoint)
+  final def incoming(packet: NetworkPacket)(interface: Interface): Unit = state match {
+    case Running =>
+      println(s"$node receiving $packet from ${interface.node}")
+      currentTime = packet.elapsedTime
+      receive(packet.dvPacket)(interface)
+    case Idle =>
   }
 
   final protected def schedulePeriod(delay: Duration, period: Duration)(event: => Unit): Unit = {
@@ -50,6 +55,7 @@ abstract class Routing(node: Node, network: Network) {
     def update(elapsedTime: Duration): Unit = {
       val control = Control[Ack]()
         .filter(_ => state == Running)
+        .andThen(_ => currentTime = elapsedTime)
         .andThen(_ => event)
         .andThen(ack => update(ack.time + period))
 
@@ -60,12 +66,21 @@ abstract class Routing(node: Node, network: Network) {
   }
 
   final protected def scheduleOnce(time: Duration)(event: => Unit): Unit = {
-    publish(Control().andThen(_ => event), time, Triggered)
+    val control = Control[Ack]()
+        .andThen(_ => currentTime = time)
+        .andThen(_ => event)
+
+    publish(control, time, Triggered)
   }
 
   final protected def route(packet: DvPacket)(interface: Interface): Unit = {
+    val _state = state
     val control = Control[Ack]()
+      .filter(_ => _state == Running)
+      .andThen(_ => println(s"$node routing $packet to ${interface.node}"))
       .andThen(ack => interface.send(NetworkPacket(packet, ack.time)))
+
+    println(s"$node scheduling route $packet to ${interface.node}")
 
     publish(control, currentTime + interface.link.delay, Triggered)
   }

@@ -32,12 +32,14 @@ case class Router private[system](node: Node, network: Network) extends Routing(
 
   final override protected def receive(packet: DvPacket)(interface: Interface): Unit = table(packet.dest) match {
     case Route(_, Connection.CLOSED) => packet.weight match {
-      case Connection.CLOSED => table.remove(packet.dest)
-      case _ if interfaces.get(packet.dest).contains(interface) => accept(interface)
+      case Connection.CLOSED if interfaces.get(packet.dest).contains(interface) =>
+        advertise(DvPacket(packet.dest, Connection.CLOSED))
+      case Connection.CLOSED =>
+      case 0 if interfaces.get(packet.dest).contains(interface) => accept(interface)
       case _ if interfaces.contains(packet.dest) =>
       case weight =>
-        table.update(packet.dest, Route(interface.node, weight + interface.link.weight))
         advertise(DvPacket(packet.dest, weight + interface.link.weight))
+        table.update(packet.dest, Route(interface.node, weight + interface.link.weight))
     }
     case Route(nh, w) => packet.weight match {
       case Connection.CLOSED if interfaces.get(packet.dest).contains(interface) => release(interface)
@@ -47,8 +49,8 @@ case class Router private[system](node: Node, network: Network) extends Routing(
         advertise(DvPacket(packet.dest, Connection.CLOSED))
       case weight if nh == interface.node && w != weight + interface.link.weight
         || weight + interface.link.weight < w =>
-        table.update(packet.dest, Route(interface.node, weight + interface.link.weight))
         advertise(DvPacket(packet.dest, weight + interface.link.weight))
+        table.update(packet.dest, Route(interface.node, weight + interface.link.weight))
       case _ =>
     }
   }
@@ -56,27 +58,30 @@ case class Router private[system](node: Node, network: Network) extends Routing(
   final private def accept(interface: Interface): Unit = {
     for {
       (dest, Route(_, weight)) <- table
-      if splitHorizon(dest).contains(interface)
     } route(DvPacket(dest, weight))(interface)
 
-    table.update(interface.node, Route(interface.node, interface.link.weight))
     advertise(DvPacket(interface.node, interface.link.weight))
+    table.update(interface.node, Route(interface.node, interface.link.weight))
   }
 
-  final private def release(interface: Interface): Unit = for {
-    (dest, Route(nh, _)) <- table
-    if dest == interface.node || nh == interface.node
-    _ = table.remove(dest)
-  } yield advertise(DvPacket(dest, Connection.CLOSED))
+  final private def release(interface: Interface): Unit = {
+    for {
+      (dest, Route(nh, _)) <- table
+      if dest == interface.node || nh == interface.node
+    } yield table.remove(dest)
+
+    advertise(DvPacket(interface.node, Connection.CLOSED))
+    advertise(DvPacket(node, 0))
+  }
 
   final private def advertise(packet: DvPacket): Unit = for {
     interface <- splitHorizon(packet.dest)
-     _ = println(s"advertising $packet to ${interface.node.id} from ${node.id}")
   } yield route(packet)(interface)
 
   final private def splitHorizon(dest: Node): Set[Interface] = for {
     interface <- interfaces.values.toSet
     if table.get(dest).fold(true)(_.nextHop != interface.node)
+    if dest != interface.node
   } yield interface
 
   final override def toString: String = {
