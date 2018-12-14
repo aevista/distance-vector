@@ -7,36 +7,36 @@ import com.network.system.Network
 import com.network.system.node.Node
 
 import scala.concurrent.duration.FiniteDuration
+import scala.util.Random
 
 object Application extends App {
 
   val network = new Network()
 
-  val router0 = network.routerOf(Node("0"))
-  val router1 = network.routerOf(Node("1"))
-  val router2 = network.routerOf(Node("2"))
-  val router3 = network.routerOf(Node("3"))
-  val router4 = network.routerOf(Node("4"))
+  val node0 = Node("0")
+  val node1 = Node("1")
+  val node2 = Node("2")
+  val node3 = Node("3")
+  val node4 = Node("4")
 
-  router3.shutdown(FiniteDuration(300000, TimeUnit.MICROSECONDS))
-  router1.shutdown(FiniteDuration(500000, TimeUnit.MICROSECONDS))
+  network.connect(node4, node1)(Link(532, 0.076792222))
+  network.connect(node4, node2)(Link(669, 0.133467327))
+  network.connect(node3, node2)(Link(722, 0.051783073))
+  network.connect(node3, node4)(Link(196, 0.184216793))
+  network.connect(node0, node1)(Link(907, 0.125563734))
+  network.connect(node0, node2)(Link(291, 0.217457185))
+  network.connect(node1, node3)(Link(24, 0.208844158))
 
-  router3.run(FiniteDuration(800000, TimeUnit.MICROSECONDS))
+  network.init(_ =>
+    FiniteDuration(Random.nextInt(10000), TimeUnit.MICROSECONDS))
 
-  network.connect(router4, router1)(Link(532, 0.076792222))
-  network.connect(router4, router2)(Link(669, 0.133467327))
-  network.connect(router3, router2)(Link(722, 0.051783073))
-  network.connect(router3, router4)(Link(196, 0.184216793))
-  network.connect(router0, router1)(Link(907, 0.125563734))
-  network.connect(router0, router2)(Link(291, 0.217457185))
-  network.connect(router1, router3)(Link(24, 0.208844158))
+  network.scheduleShutdown(node3)(FiniteDuration(300000, TimeUnit.MICROSECONDS))
+  network.scheduleShutdown(node1)(FiniteDuration(500000, TimeUnit.MICROSECONDS))
+  network.scheduleStart(node3)(FiniteDuration(800000, TimeUnit.MICROSECONDS))
 
-  network.init()
-  println(network)
+  val convergedTime = network.process()
 
-  network.start()
-
-  println(s"converged at time ${network.process()}")
+  println(s"Converged at time $convergedTime")
 
   println(network)
 

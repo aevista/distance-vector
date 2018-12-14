@@ -16,12 +16,12 @@ case class Router private[system](node: Node, network: Network) extends Routing(
   private val table = m.Map.empty[Node, Route]
     .withDefault(Route(_, Connection.CLOSED))
 
-  final def shutdown(delay: Duration): Unit = scheduleOnce(delay){
+  final private[system] def shutdown(delay: Duration): Unit = scheduleOnce(delay){
     terminate()
     table.clear()
   }
 
-  final def run(delay: Duration = Duration.Zero): Unit = scheduleOnce(delay){
+  final private[system] def run(delay: Duration = Duration.Zero): Unit = scheduleOnce(delay){
     init()
     table.update(node, Route(node, 0))
 

@@ -14,33 +14,21 @@ import scala.util.{Success, Try}
 
 class Network {
 
-  implicit val ord: Ordering[ControlEvent] = Ordering.by((_: ControlEvent).elapsedTime).reverse
+  implicit val ord: Ordering[ControlEvent] =
+    Ordering.by((_: ControlEvent).elapsedTime).reverse
   private val events = m.PriorityQueue[ControlEvent]()
+  private val table = m.Map.empty[Node, Router]
 
-  private val table = m.Map.empty[Router, m.Map[Router, Link]]
-    .withDefaultValue(m.Map.empty[Router, Link])
+  final def connect(node1: Node, node2: Node)(link: Link): Unit = {
+    val router1 = table.getOrElseUpdate(node1, Router(node1, this))
+    val router2 = table.getOrElseUpdate(node2, Router(node2, this))
 
-  final def routerOf(node: Node): Router = Router(node, this)
-
-  final def connect(router1: Router, router2: Router)(link: Link): Unit = {
-    table.update(router1, table(router1).updated(router2, link))
+    link.connect(router1, router2)
   }
 
-  final def publish(event: ControlEvent): Unit = {
-    println(s"published event $event")
-    events.enqueue(event)
-  }
-
-  final def init(): Unit =  for {
-    (router1, entries) <- table
-    (router2, link) <- entries
-  } yield link.connect(router1, router2)
-
-  final def start(): Unit = for {
-    (router1, entries) <- table
-    (router2, _) <- entries
-    r <- Set(router1, router2)
-  } yield r.run()
+  final def init(f: Node => FiniteDuration = _ => Duration.Zero): Unit = for {
+    (node, router) <- table
+  } yield router.run(f(node))
 
   final def process(): Duration = {
 
@@ -55,9 +43,22 @@ class Network {
     process(FiniteDuration(0, TimeUnit.SECONDS))
   }
 
+  final def scheduleStart(node:Node)(time: FiniteDuration): Unit = {
+    table.get(node).foreach(
+      _.run(time))
+  }
+
+  final def scheduleShutdown(node: Node)(time: FiniteDuration): Unit = {
+    table.get(node).foreach(
+      _.shutdown(time))
+  }
+
+  final private[system] def publish(event: ControlEvent): Unit =
+    events.enqueue(event)
+
   override final def toString: String = {
-    table.flatMap { case (r1, e) => e.keys.toSet + r1 }
-      .toSet.toList.sortBy[String](_.node.id)(Ordering.String)
+    table.values
+      .toList.sortBy[String](_.node.id)(Ordering.String)
       .mkString("\n")
   }
 

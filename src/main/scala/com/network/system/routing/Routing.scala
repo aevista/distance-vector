@@ -13,7 +13,7 @@ import com.network.util.{Ack, Periodic, Reason, Triggered}
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
 
-abstract class Routing(node: Node, network: Network) {
+abstract private[system] class Routing(node: Node, network: Network) {
 
   private var state: State = Idle
   private var currentTime: Duration = FiniteDuration(0, TimeUnit.SECONDS)
@@ -25,16 +25,16 @@ abstract class Routing(node: Node, network: Network) {
   final protected def interfaces: Map[Node, Interface] = _interfaces
 
   final protected def init(): Unit = {
-    println(s"$node initializing")
+    println(s"TIME ${"%10d".format(currentTime.toMicros)}: $node initializing")
+    state = Running
     for {
       interface <- interfaces.values
       _ = interface.open()
     } yield route(DvPacket(node, 0))(interface)
-    state = Running
   }
 
   final protected def terminate(): Unit = {
-    println(s"$node terminating")
+    println(s"TIME ${"%10d".format(currentTime.toMicros)}: $node terminating")
     for {
       interface <- interfaces.values
       _ = interface.close()
@@ -44,7 +44,7 @@ abstract class Routing(node: Node, network: Network) {
 
   final def incoming(packet: NetworkPacket)(interface: Interface): Unit = state match {
     case Running =>
-      println(s"$node receiving $packet from ${interface.node}")
+      println(s"TIME ${"%10d".format(currentTime.toMicros)}: $node receiving $packet from ${interface.node}")
       currentTime = packet.elapsedTime
       receive(packet.dvPacket)(interface)
     case Idle =>
@@ -77,10 +77,10 @@ abstract class Routing(node: Node, network: Network) {
     val _state = state
     val control = Control[Ack]()
       .filter(_ => _state == Running)
-      .andThen(_ => println(s"$node routing $packet to ${interface.node}"))
+      .andThen(_ => println(s"TIME ${"%10d".format(currentTime.toMicros)}: $node routing $packet to ${interface.node}"))
       .andThen(ack => interface.send(NetworkPacket(packet, ack.time)))
 
-    println(s"$node scheduling route $packet to ${interface.node}")
+    println(s"TIME ${"%10d".format(currentTime.toMicros)}: $node scheduling route $packet to ${interface.node}")
 
     publish(control, currentTime + interface.link.delay, Triggered)
   }
