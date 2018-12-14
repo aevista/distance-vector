@@ -30,6 +30,14 @@ case class Router private[system](node: Node, network: Network) extends Routing(
     } yield advertise(DvPacket(dest, weight))}
   }
 
+  /**
+    * Receive.
+    * State like receiver that handles incoming packets.
+    *
+    * @param packet DvPacket
+    * @param interface Interface
+    */
+
   final override protected def receive(packet: DvPacket)(interface: Interface): Unit = table(packet.dest) match {
     case Route(_, Connection.CLOSED) => packet.weight match {
       case Connection.CLOSED if interfaces.get(packet.dest).contains(interface) =>
@@ -38,8 +46,8 @@ case class Router private[system](node: Node, network: Network) extends Routing(
       case 0 if interfaces.get(packet.dest).contains(interface) => accept(interface)
       case _ if interfaces.contains(packet.dest) =>
       case weight =>
-        advertise(DvPacket(packet.dest, weight + interface.link.weight))
         table.update(packet.dest, Route(interface.node, weight + interface.link.weight))
+        advertise(DvPacket(packet.dest, weight + interface.link.weight))
     }
     case Route(nh, w) => packet.weight match {
       case Connection.CLOSED if interfaces.get(packet.dest).contains(interface) => release(interface)
@@ -49,20 +57,37 @@ case class Router private[system](node: Node, network: Network) extends Routing(
         advertise(DvPacket(packet.dest, Connection.CLOSED))
       case weight if nh == interface.node && w != weight + interface.link.weight
         || weight + interface.link.weight < w =>
-        advertise(DvPacket(packet.dest, weight + interface.link.weight))
         table.update(packet.dest, Route(interface.node, weight + interface.link.weight))
+        advertise(DvPacket(packet.dest, weight + interface.link.weight))
       case _ =>
     }
   }
+
+  /**
+    * Accept.
+    * Adds new Node route to table.
+    * Sends new Node routing info.
+    * Advertise new connection to other nodes.
+    *
+    * @param interface Interface
+    */
 
   final private def accept(interface: Interface): Unit = {
     for {
       (dest, Route(_, weight)) <- table
     } route(DvPacket(dest, weight))(interface)
 
-    advertise(DvPacket(interface.node, interface.link.weight))
     table.update(interface.node, Route(interface.node, interface.link.weight))
+    advertise(DvPacket(interface.node, interface.link.weight))
   }
+
+  /**
+    * Release.
+    * Removes all entries that contain dropped Node.
+    * Advertises lost connections and advertises itself.
+    *
+    * @param interface Interface
+    */
 
   final private def release(interface: Interface): Unit = {
     for {
@@ -71,17 +96,36 @@ case class Router private[system](node: Node, network: Network) extends Routing(
     } yield table.remove(dest)
 
     advertise(DvPacket(interface.node, Connection.CLOSED))
+    // advertises itself due to the possibility of this now
+    // being the shortest path to get to this node
     advertise(DvPacket(node, 0))
   }
 
+  /**
+    * Advertise.
+    * Routes packets to interfaces via split horizon.
+    * Don't advertise a route to a node on how to get to itself.
+    *
+    * @param packet DvPacket
+    */
+
   final private def advertise(packet: DvPacket): Unit = for {
     interface <- splitHorizon(packet.dest)
+    if packet.dest != interface.node
   } yield route(packet)(interface)
+
+  /**
+    * SplitHorizon.
+    * Don't advertise a route to get to Node A from Node B
+    * to Node B.
+    *
+    * @param dest Node
+    * @return interfaces
+    */
 
   final private def splitHorizon(dest: Node): Set[Interface] = for {
     interface <- interfaces.values.toSet
     if table.get(dest).fold(true)(_.nextHop != interface.node)
-    if dest != interface.node
   } yield interface
 
   final override def toString: String = {
