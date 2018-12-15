@@ -2,9 +2,9 @@ package com.network
 
 import java.util.concurrent.TimeUnit
 
-import com.network.connection.Link
-import com.network.system.Network
 import com.network.system.node.Node
+import com.network.system.routing.connection.Link
+import com.network.system.Network
 
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Random

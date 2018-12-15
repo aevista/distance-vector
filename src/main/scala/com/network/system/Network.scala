@@ -2,9 +2,10 @@ package com.network.system
 
 import java.util.concurrent.TimeUnit
 
-import com.network.connection.Link
-import com.network.system.node.{Node, Router}
+import com.network.system.routing.connection.Link
+import com.network.system.router.Router
 import com.network.event.ControlEvent
+import com.network.system.node.Node
 import com.network.util.{Ack, Triggered}
 
 import scala.annotation.tailrec

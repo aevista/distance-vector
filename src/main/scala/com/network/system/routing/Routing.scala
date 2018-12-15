@@ -2,12 +2,12 @@ package com.network.system.routing
 
 import java.util.concurrent.TimeUnit
 
-import com.network.connection.{Connection, Interface}
+import com.network.system.routing.connection.{Connection, Interface}
 import com.network.control.Control
 import com.network.event.ControlEvent
+import com.network.system.node.Node
 import com.network.system.Network
 import com.network.packet.{DvPacket, NetworkPacket}
-import com.network.system.node.Node
 import com.network.system.state.{Idle, Running, State}
 import com.network.util.{Ack, Periodic, Reason, Triggered}
 
@@ -19,7 +19,7 @@ abstract private[system] class Routing(node: Node, network: Network) {
   private var currentTime: Duration = FiniteDuration(0, TimeUnit.SECONDS)
   private var _interfaces = Map.empty[Node, Interface]
 
-  final def connect(interface: Interface): Unit =
+  final private[routing] def connect(interface: Interface): Unit =
     _interfaces += interface.node -> interface
 
   final protected def interfaces: Map[Node, Interface] = _interfaces
@@ -42,7 +42,7 @@ abstract private[system] class Routing(node: Node, network: Network) {
     state = Idle
   }
 
-  final def incoming(packet: NetworkPacket)(interface: Interface): Unit = state match {
+  final private[routing] def incoming(packet: NetworkPacket)(interface: Interface): Unit = state match {
     case Running =>
       currentTime = packet.elapsedTime
       println(s"TIME ${"%10d".format(currentTime.toMicros)}: $node receiving ${packet.dvPacket} from ${interface.node}")
@@ -50,7 +50,7 @@ abstract private[system] class Routing(node: Node, network: Network) {
     case Idle =>
   }
 
-  final protected def schedulePeriod(delay: Duration, period: Duration)(event: => Unit): Unit = {
+  final protected def schedulePeriodic(delay: Duration, period: Duration)(event: => Unit): Unit = {
 
     def update(elapsedTime: Duration): Unit = {
       val control = Control[Ack]()

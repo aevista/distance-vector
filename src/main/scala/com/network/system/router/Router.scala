@@ -1,8 +1,9 @@
-package com.network.system.node
+package com.network.system.router
 
 import java.util.concurrent.TimeUnit
 
-import com.network.connection.{Connection, Interface}
+import com.network.system.node.Node
+import com.network.system.routing.connection.{Connection, Interface}
 import com.network.system.Network
 import com.network.packet.DvPacket
 import com.network.system.routing.Routing
@@ -25,7 +26,7 @@ case class Router private[system](node: Node, network: Network) extends Routing(
     init()
     table.update(node, Route(node, 0))
 
-    schedulePeriod(delay, FiniteDuration(1, TimeUnit.SECONDS)){ for {
+    schedulePeriodic(delay, FiniteDuration(1, TimeUnit.SECONDS)){ for {
       (dest, Route(_, weight)) <- table
     } yield advertise(DvPacket(dest, weight))}
   }

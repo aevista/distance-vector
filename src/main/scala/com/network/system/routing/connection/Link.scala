@@ -1,8 +1,8 @@
-package com.network.connection
+package com.network.system.routing.connection
 
 import java.util.concurrent.TimeUnit
 
-import com.network.system.node.Router
+import com.network.system.router.Router
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -13,7 +13,7 @@ object Link {
 
 case class Link(weight: Int, delay: FiniteDuration) {
 
-  final def connect(router1: Router, router2: Router): Connection =
+  final private[system] def connect(router1: Router, router2: Router): Connection =
     Connection(router1, router2)(this)
 
 }
