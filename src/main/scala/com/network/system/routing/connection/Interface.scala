@@ -8,8 +8,8 @@ trait Interface {
   def node: Node
   def link: Link
   private[connection] def bind(): Unit
-  private[routing] def receive(packet: NetworkPacket): Unit
-  private[routing] def send(packet: NetworkPacket): Unit
+  private[routing] def receive(nwp: NetworkPacket): Unit
+  private[routing] def send(nwp: NetworkPacket): Unit
   private[routing] def close(): Unit
   private[routing] def open(): Unit
 
