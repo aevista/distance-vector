@@ -27,12 +27,14 @@ object Application extends App {
   network.connect(node0, node2)(Link(291, 0.217457185))
   network.connect(node1, node3)(Link(24, 0.208844158))
 
-  network.init(_ =>
-    FiniteDuration(Random.nextInt(10000), TimeUnit.MICROSECONDS))
+  Random.setSeed(1)
 
-  network.scheduleShutdown(node3)(FiniteDuration(300000, TimeUnit.MICROSECONDS))
-  network.scheduleShutdown(node1)(FiniteDuration(500000, TimeUnit.MICROSECONDS))
-  network.scheduleStart(node3)(FiniteDuration(800000, TimeUnit.MICROSECONDS))
+  network.init(_ =>
+    FiniteDuration(Random.nextInt(100000), TimeUnit.MICROSECONDS))
+
+  network.scheduleShutdown(node3)(FiniteDuration(1300000, TimeUnit.MICROSECONDS))
+  network.scheduleShutdown(node1)(FiniteDuration(1500000, TimeUnit.MICROSECONDS))
+  network.scheduleStart(node3)(FiniteDuration(1800000, TimeUnit.MICROSECONDS))
 
   val convergedTime = network.process()
 

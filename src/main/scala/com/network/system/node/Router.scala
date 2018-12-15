@@ -40,8 +40,7 @@ case class Router private[system](node: Node, network: Network) extends Routing(
 
   final override protected def receive(packet: DvPacket)(interface: Interface): Unit = table(packet.dest) match {
     case Route(_, Connection.CLOSED) => packet.weight match {
-      case Connection.CLOSED if interfaces.get(packet.dest).contains(interface) =>
-        advertise(DvPacket(packet.dest, Connection.CLOSED))
+      case Connection.CLOSED if interfaces.get(packet.dest).contains(interface) => advertise(packet)
       case Connection.CLOSED =>
       case 0 if interfaces.get(packet.dest).contains(interface) => accept(interface)
       case _ if interfaces.contains(packet.dest) =>
@@ -54,7 +53,7 @@ case class Router private[system](node: Node, network: Network) extends Routing(
       case Connection.CLOSED if interfaces.contains(packet.dest) =>
       case Connection.CLOSED =>
         table.remove(packet.dest)
-        advertise(DvPacket(packet.dest, Connection.CLOSED))
+        advertise(packet)
       case weight if nh == interface.node && w != weight + interface.link.weight
         || weight + interface.link.weight < w =>
         table.update(packet.dest, Route(interface.node, weight + interface.link.weight))
