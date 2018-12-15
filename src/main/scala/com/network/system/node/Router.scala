@@ -39,27 +39,31 @@ case class Router private[system](node: Node, network: Network) extends Routing(
     */
 
   final override protected def receive(packet: DvPacket)(interface: Interface): Unit = table(packet.dest) match {
-    case Route(_, Connection.CLOSED) => packet.weight match {
-      case Connection.CLOSED if interfaces.get(packet.dest).contains(interface) => advertise(packet)
-      case Connection.CLOSED =>
-      case 0 if interfaces.get(packet.dest).contains(interface) => accept(interface)
-      case _ if interfaces.contains(packet.dest) =>
-      case weight =>
-        table.update(packet.dest, Route(interface.node, weight + interface.link.weight))
-        advertise(DvPacket(packet.dest, weight + interface.link.weight))
-    }
-    case Route(nh, w) => packet.weight match {
-      case Connection.CLOSED if interfaces.get(packet.dest).contains(interface) => release(interface)
-      case Connection.CLOSED if interfaces.contains(packet.dest) =>
-      case Connection.CLOSED =>
-        table.remove(packet.dest)
-        advertise(packet)
-      case weight if nh == interface.node && w != weight + interface.link.weight
-        || weight + interface.link.weight < w =>
-        table.update(packet.dest, Route(interface.node, weight + interface.link.weight))
-        advertise(DvPacket(packet.dest, weight + interface.link.weight))
-      case _ =>
-    }
+    case Route(_, Connection.CLOSED) => closedRoute()(packet)(interface)
+    case route => openedRoute(route)(packet)(interface)
+  }
+
+  final private def closedRoute()(p: DvPacket)(i: Interface): Unit = p.weight match {
+    case Connection.CLOSED if interfaces.get(p.dest).contains(i) => advertise(p)
+    case Connection.CLOSED =>
+    case 0 if interfaces.get(p.dest).contains(i) => accept(i)
+    case _ if interfaces.contains(p.dest) =>
+    case weight =>
+      table.update(p.dest, Route(i.node, weight + i.link.weight))
+      advertise(DvPacket(p.dest, weight + i.link.weight))
+  }
+
+  final private def openedRoute(r: Route)(p: DvPacket)(i: Interface): Unit = p.weight match {
+    case Connection.CLOSED if interfaces.get(p.dest).contains(i) => release(i)
+    case Connection.CLOSED if interfaces.contains(p.dest) =>
+    case Connection.CLOSED =>
+      table.remove(p.dest)
+      advertise(p)
+    case weight if r.nextHop == i.node && r.weight != weight + i.link.weight
+      || weight + i.link.weight < r.weight =>
+      table.update(p.dest, Route(i.node, weight + i.link.weight))
+      advertise(DvPacket(p.dest, weight + i.link.weight))
+    case _ =>
   }
 
   /**
