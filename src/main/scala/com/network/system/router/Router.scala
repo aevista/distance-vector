@@ -39,32 +39,31 @@ case class Router private[system](node: Node, network: Network) extends Routing(
     * @param i Interface
     */
 
-  final override protected def receive(dvp: DvPacket)(i: Interface): Unit = table(dvp.dest) match {
-    case Route(_, Connection.CLOSED) => closedRoute()(dvp)(i)
-    case r: Route => openedRoute(r)(dvp)(i)
-  }
-
-  final private def closedRoute()(dvp: DvPacket)(i: Interface): Unit = dvp.weight match {
-    case Connection.CLOSED if interfaces.get(dvp.dest).contains(i) => advertise(dvp)
-    case Connection.CLOSED =>
-    case 0 if interfaces.get(dvp.dest).contains(i) => accept(i)
-    case _ if interfaces.contains(dvp.dest) =>
-    case weight =>
-      table.update(dvp.dest, Route(i.node, weight + i.link.weight))
-      advertise(DvPacket(dvp.dest, weight + i.link.weight))
-  }
-
-  final private def openedRoute(r: Route)(dvp: DvPacket)(i: Interface): Unit = dvp.weight match {
-    case Connection.CLOSED if interfaces.get(dvp.dest).contains(i) => release(i)
-    case Connection.CLOSED if interfaces.contains(dvp.dest) =>
-    case Connection.CLOSED =>
-      table.remove(dvp.dest)
-      advertise(dvp)
-    case weight if r.nextHop == i.node && r.weight != weight + i.link.weight
-      || weight + i.link.weight < r.weight =>
-      table.update(dvp.dest, Route(i.node, weight + i.link.weight))
-      advertise(DvPacket(dvp.dest, weight + i.link.weight))
-    case _ =>
+  protected def receive(dvp: DvPacket)(i: Interface): Unit = (table(dvp.dest), dvp.weight) match {
+    case (Route(_, Connection.CLOSED), Connection.CLOSED) => interfaces.get(dvp.dest) match {
+      case Some(neighbor) if neighbor == i => advertise(dvp)
+      case _ =>
+    }
+    case (Route(_, Connection.CLOSED), advWeight) => interfaces.get(dvp.dest) match {
+      case Some(neighbor) if neighbor == i => accept(i)
+      case Some(_) =>
+      case None =>
+        table.update(dvp.dest, Route(i.node, advWeight + i.link.weight))
+        advertise(DvPacket(dvp.dest, advWeight + i.link.weight))
+    }
+    case (_, Connection.CLOSED) => interfaces.get(dvp.dest) match {
+      case Some(neighbor) if neighbor == i => release(i)
+      case Some(_) =>
+      case None =>
+        table.remove(dvp.dest)
+        advertise(dvp)
+    }
+    case (Route(nh, w), advWeight) => advWeight + i.link.weight match {
+      case adv if nh == i.node && adv != w || adv < w =>
+        table.update(dvp.dest, Route(i.node, adv))
+        advertise(DvPacket(dvp.dest, adv))
+      case _ =>
+    }
   }
 
   /**
