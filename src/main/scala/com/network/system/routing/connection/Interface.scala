@@ -13,5 +13,5 @@ trait Interface {
   private[routing] def close(): Unit
   private[routing] def open(): Unit
 
-  override def toString: String = s"EndPoint(${node.id})"
+  override def toString: String = s"Interface(${node.id})"
 }

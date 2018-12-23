@@ -58,8 +58,8 @@ case class Router private[system](node: Node, network: Network) extends Routing(
         table.remove(dvp.dest)
         advertise(dvp)
     }
-    case (Route(nh, w), advWeight) => advWeight + i.link.weight match {
-      case adv if nh == i.node && adv != w || adv < w =>
+    case (Route(_, w), advWeight) => advWeight + i.link.weight match {
+      case adv if adv < w =>
         table.update(dvp.dest, Route(i.node, adv))
         advertise(DvPacket(dvp.dest, adv))
       case _ =>
@@ -132,9 +132,9 @@ case class Router private[system](node: Node, network: Network) extends Routing(
   } yield interface
 
   final override def toString: String = {
-    table.toList.sortBy(_._1.id)( Ordering.String)
+    table.toList.sortBy(_._1.id.toInt)( Ordering.Int)
       .foldLeft(s"Router ${node.id}") { case (str, (dest, Route(nh, weight))) =>
-        str + s"\n${dest.id} | ${nh.id} | $weight"
+        str + f"\n${dest.id}%5s|${nh.id}%5s|$weight%5s"
     }.concat("\n")
   }
 

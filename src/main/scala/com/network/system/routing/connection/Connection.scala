@@ -42,14 +42,14 @@ private[connection] class Connection(r1: Router, r2: Router, link: Link) {
       private[routing] def open(): Unit = state2 = Opened
     }
 
-    println(s"Connecting ${r1.node.id} to ${r2.node.id}")
+    println(Connection.this.toString)
 
     i1.bind()
     i2.bind()
   }
 
   override def toString: String =
-    s"Connection(${r1.node.id} <-> ${r2.node.id})"
+    s"Connection(${r1.node.id} <-> ${r2.node.id}) weight ${link.weight}"
 
 }
 
