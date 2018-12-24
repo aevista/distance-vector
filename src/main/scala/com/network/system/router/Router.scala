@@ -58,8 +58,8 @@ case class Router private[system](node: Node, network: Network) extends Routing(
         table.remove(dvp.dest)
         advertise(dvp)
     }
-    case (Route(_, w), advWeight) => advWeight + i.link.weight match {
-      case adv if adv < w =>
+    case (Route(nh, w), advWeight) => advWeight + i.link.weight match {
+      case adv if nh == i.node && adv != w || adv < w =>
         table.update(dvp.dest, Route(i.node, adv))
         advertise(DvPacket(dvp.dest, adv))
       case _ =>
