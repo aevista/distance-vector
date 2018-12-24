@@ -6,7 +6,7 @@ import com.network.system.routing.connection.Link
 import com.network.system.router.Router
 import com.network.event.ControlEvent
 import com.network.system.node.Node
-import com.network.util.{Ack, Triggered}
+import com.network.util.{Ack, Reason, Triggered}
 
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}
@@ -15,8 +15,14 @@ import scala.util.{Success, Try}
 
 class Network {
 
-  implicit val ord: Ordering[ControlEvent] =
-    Ordering.by((_: ControlEvent).elapsedTime).reverse
+  implicit def ord: Ordering[ControlEvent] = {
+    type CE = ControlEvent
+    implicit val reasonOrd: Ordering[Reason] =
+      Ordering.by[Reason, String](_.toString).reverse
+
+    Ordering.by[CE, (Duration, Reason)](e => (e.elapsedTime, e.reason)).reverse
+  }
+
   private val events = m.PriorityQueue[ControlEvent]()
   private val table = m.Map.empty[Node, Router]
 

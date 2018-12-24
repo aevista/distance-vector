@@ -26,7 +26,9 @@ case class Router private[system](node: Node, network: Network) extends Routing(
     init()
     table.update(node, Route(node, 0))
 
-    schedulePeriodic(delay, FiniteDuration(1, TimeUnit.SECONDS)){ for {
+    schedulePeriodic(delay, FiniteDuration(1, TimeUnit.SECONDS)){
+      println(s"$node advertising routing table\n$toString")
+      for {
       (dest, Route(_, weight)) <- table
     } yield advertise(DvPacket(dest, weight))}
   }
@@ -41,25 +43,34 @@ case class Router private[system](node: Node, network: Network) extends Routing(
 
   protected def receive(dvp: DvPacket)(i: Interface): Unit = (table(dvp.dest), dvp.weight) match {
     case (Route(_, Connection.CLOSED), Connection.CLOSED) => interfaces.get(dvp.dest) match {
-      case Some(neighbor) if neighbor == i => advertise(dvp)
+      case Some(neighbor) if neighbor == i =>
+        println(s"$node advertising closed connection")
+        advertise(dvp)
       case _ =>
     }
     case (Route(_, Connection.CLOSED), advWeight) => interfaces.get(dvp.dest) match {
-      case Some(neighbor) if neighbor == i => accept(i)
+      case Some(neighbor) if neighbor == i =>
+        println(s"$node opening connection to ${i.node}")
+        open(i)
       case Some(_) =>
       case None =>
+        println(s"$node adding new route to ${dvp.dest}")
         table.update(dvp.dest, Route(i.node, advWeight + i.link.weight))
         advertise(DvPacket(dvp.dest, advWeight + i.link.weight))
     }
-    case (_, Connection.CLOSED) => interfaces.get(dvp.dest) match {
-      case Some(neighbor) if neighbor == i => release(i)
+    case (Route(nh, _), Connection.CLOSED) => interfaces.get(dvp.dest) match {
+      case Some(neighbor) if neighbor == i =>
+        println(s"$node closing connection to ${i.node}")
+        close(i)
       case Some(_) =>
       case None =>
+        println(s"$node removing route to ${dvp.dest}")
         table.remove(dvp.dest)
         advertise(dvp)
     }
     case (Route(nh, w), advWeight) => advWeight + i.link.weight match {
       case adv if nh == i.node && adv != w || adv < w =>
+        println(s"$node updating route to ${dvp.dest}")
         table.update(dvp.dest, Route(i.node, adv))
         advertise(DvPacket(dvp.dest, adv))
       case _ =>
@@ -75,7 +86,8 @@ case class Router private[system](node: Node, network: Network) extends Routing(
     * @param i Interface
     */
 
-  final private def accept(i: Interface): Unit = {
+  final private def open(i: Interface): Unit = {
+
     for {
       (dest, Route(_, weight)) <- table
     } route(DvPacket(dest, weight))(i)
@@ -92,7 +104,8 @@ case class Router private[system](node: Node, network: Network) extends Routing(
     * @param i Interface
     */
 
-  final private def release(i: Interface): Unit = {
+  final private def close(i: Interface): Unit = {
+
     for {
       (dest, Route(nh, _)) <- table
       if dest == i.node || nh == i.node

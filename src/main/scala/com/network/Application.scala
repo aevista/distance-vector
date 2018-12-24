@@ -1,9 +1,12 @@
 package com.network
 
+import java.util.concurrent.TimeUnit
+
 import com.network.system.node.Node
 import com.network.system.routing.connection.Link
 import com.network.system.Network
 
+import scala.concurrent.duration.Duration
 import scala.io.Source
 import scala.util.{Failure, Success, Try}
 
@@ -23,6 +26,8 @@ object Application extends App {
     }
     case pattern => println(s"Failed to match Pattern $pattern")
   }
+
+  network.scheduleShutdown(Node(9))(Duration(1000, TimeUnit.MICROSECONDS))
 
   network.init()
 
