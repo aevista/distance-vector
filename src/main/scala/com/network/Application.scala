@@ -11,13 +11,13 @@ object Application extends App {
 
   val network = new Network()
 
-  val Relation = """([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)""".r
+  val Pattern = """([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)""".r
 
   for {
     file <- Try(Source.fromFile(args.head)).toOption.toSeq
     line <- file.getLines().toList
   } yield  line match {
-    case Relation(id1, id2, w, d) => Try(Link(w.toInt, d.toDouble)) match {
+    case Pattern(id1, id2, w, d) => Try(Link(w.toInt, d.toDouble)) match {
       case Success(link) => network.connect(Node(id1), Node(id2))(link)
       case Failure(e) => println(s"Failed to create connection $e")
     }
