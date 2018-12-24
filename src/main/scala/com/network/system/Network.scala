@@ -59,7 +59,7 @@ class Network {
 
   override final def toString: String = {
     table.values
-      .toList.sortBy[Int](_.node.id.toInt)(Ordering.Int)
+      .toList.sortBy[Int](_.node.id)(Ordering.Int)
       .mkString("\n")
   }
 

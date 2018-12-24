@@ -1,3 +1,3 @@
 package com.network.system.node
 
-case class Node(id: String)
+case class Node(id: Int)
