@@ -42,6 +42,9 @@ case class Router private[system](node: Node, network: Network) extends Routing(
     */
 
   protected def receive(dvp: DvPacket)(i: Interface): Unit = (table(dvp.dest), dvp.weight) match {
+    case (_, advWeight) if advWeight + i.link.weight >= 16 =>
+      println(s"$node poisoning route to ${dvp.dest}")
+      table.remove(dvp.dest)
     case (Route(_, Connection.CLOSED), Connection.CLOSED) => interfaces.get(dvp.dest) match {
       case Some(neighbor) if neighbor == i =>
         println(s"$node advertising closed connection")
@@ -62,11 +65,11 @@ case class Router private[system](node: Node, network: Network) extends Routing(
       case Some(neighbor) if neighbor == i =>
         println(s"$node closing connection to ${i.node}")
         close(i)
-      case Some(_) =>
-      case None =>
+      case None if nh == i.node =>
         println(s"$node removing route to ${dvp.dest}")
         table.remove(dvp.dest)
         advertise(dvp)
+      case Some(_) | None =>
     }
     case (Route(nh, w), advWeight) => advWeight + i.link.weight match {
       case adv if nh == i.node && adv != w || adv < w =>
