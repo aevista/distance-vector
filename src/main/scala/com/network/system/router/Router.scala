@@ -16,6 +16,7 @@ case class Router private[system](node: Node, network: Network) extends Routing(
 
   private val table = m.Map.empty[Node, Route]
     .withDefault(Route(_, Connection.CLOSED))
+  private val holdDown = m.Map.empty[Node, Interface]
 
   final private[system] def shutdown(delay: Duration): Unit = scheduleOnce(delay){
     terminate()
@@ -42,9 +43,6 @@ case class Router private[system](node: Node, network: Network) extends Routing(
     */
 
   protected def receive(dvp: DvPacket)(i: Interface): Unit = (table(dvp.dest), dvp.weight) match {
-    case (_, advWeight) if advWeight + i.link.weight >= 16 =>
-      println(s"$node poisoning route to ${dvp.dest}")
-      table.remove(dvp.dest)
     case (Route(_, Connection.CLOSED), Connection.CLOSED) => interfaces.get(dvp.dest) match {
       case Some(neighbor) if neighbor == i =>
         println(s"$node advertising closed connection")
@@ -55,11 +53,12 @@ case class Router private[system](node: Node, network: Network) extends Routing(
       case Some(neighbor) if neighbor == i =>
         println(s"$node opening connection to ${i.node}")
         open(i)
-      case Some(_) =>
-      case None =>
+      case None if holdDown.get(dvp.dest).fold(true)(_ == i) =>
         println(s"$node adding new route to ${dvp.dest}")
+        holdDown.remove(dvp.dest)
         table.update(dvp.dest, Route(i.node, advWeight + i.link.weight))
         advertise(DvPacket(dvp.dest, advWeight + i.link.weight))
+      case Some(_) | None =>
     }
     case (Route(nh, _), Connection.CLOSED) => interfaces.get(dvp.dest) match {
       case Some(neighbor) if neighbor == i =>
@@ -67,6 +66,7 @@ case class Router private[system](node: Node, network: Network) extends Routing(
         close(i)
       case None if nh == i.node =>
         println(s"$node removing route to ${dvp.dest}")
+        holdDown.put(dvp.dest, i)
         table.remove(dvp.dest)
         advertise(dvp)
       case Some(_) | None =>

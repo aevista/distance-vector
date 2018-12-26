@@ -21,19 +21,20 @@ object Application extends App {
     line <- file.getLines().toList
   } yield  line match {
     case Pattern(id1, id2, w, d) => Try((id1.toInt, id2.toInt, w.toInt, d.toDouble)) match {
-      case Success((a, b, weight, delay)) => network.connect(Node(a), Node(b))(Link(1, delay))
+      case Success((a, b, weight, delay)) => network.connect(Node(a), Node(b))(Link(weight, delay))
       case Failure(e) => println(s"Failed to create connection $e")
     }
     case pattern => println(s"Failed to match Pattern $pattern")
   }
 
   network.scheduleShutdown(Node(3))(Duration(1000, TimeUnit.MICROSECONDS))
+  network.scheduleShutdown(Node(1))(Duration(2000, TimeUnit.MICROSECONDS))
 
   network.init()
 
   val convergedTime = network.process()
 
-  println(s"Converged at time $convergedTime")
+  println(s"Converged at time ${convergedTime.toSeconds}")
 
   println(network)
 
