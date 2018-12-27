@@ -15,7 +15,7 @@ import scala.util.{Success, Try}
 
 class Network {
 
-  implicit def ord: Ordering[ControlEvent] = {
+  val ord: Ordering[ControlEvent] = {
     type CE = ControlEvent
     implicit val reasonOrd: Ordering[Reason] =
       Ordering.by[Reason, String](_.toString).reverse
@@ -23,7 +23,7 @@ class Network {
     Ordering.by[CE, (Duration, Reason)](e => (e.elapsedTime, e.reason)).reverse
   }
 
-  private val events = m.PriorityQueue[ControlEvent]()
+  private val events = m.PriorityQueue[ControlEvent]()(ord)
   private val table = m.Map.empty[Node, Router]
 
   final def connect(node1: Node, node2: Node)(link: Link): Unit = {
