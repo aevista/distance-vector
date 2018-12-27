@@ -10,17 +10,18 @@ import com.network.util.{Ack, Reason, Triggered}
 
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}
+import scala.concurrent.duration.Duration.DurationIsOrdered
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.util.{Success, Try}
 
 class Network {
 
   val ord: Ordering[ControlEvent] = {
-    type CE = ControlEvent
     implicit val reasonOrd: Ordering[Reason] =
       Ordering.by[Reason, String](_.toString).reverse
 
-    Ordering.by[CE, (Duration, Reason)](e => (e.elapsedTime, e.reason)).reverse
+    Ordering.by[ControlEvent, (Duration, Reason)](e =>
+      (e.elapsedTime, e.reason)).reverse
   }
 
   private val events = m.PriorityQueue[ControlEvent]()(ord)
