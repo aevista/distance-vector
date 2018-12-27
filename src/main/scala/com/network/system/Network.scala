@@ -27,10 +27,9 @@ class Network {
   private val table = m.Map.empty[Node, Router]
 
   final def connect(node1: Node, node2: Node)(link: Link): Unit = {
-    val router1 = table.getOrElseUpdate(node1, Router(node1, this))
-    val router2 = table.getOrElseUpdate(node2, Router(node2, this))
-
-    link.connect(router1, router2)
+    link.connect(
+      table.getOrElseUpdate(node1, Router(node1, this)),
+      table.getOrElseUpdate(node2, Router(node2, this)))
   }
 
   final def init(f: Node => FiniteDuration = _ => Duration.Zero): Unit = for {

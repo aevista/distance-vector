@@ -34,7 +34,7 @@ object Application extends App {
 
   val convergedTime = network.process()
 
-  println(s"Converged at time ${convergedTime.toSeconds}")
+  println(s"Converged at time $convergedTime")
 
   println(network)
 

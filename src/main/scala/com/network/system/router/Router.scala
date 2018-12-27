@@ -14,9 +14,9 @@ import scala.concurrent.duration.{Duration, FiniteDuration}
 
 case class Router private[system](node: Node, network: Network) extends Routing(node, network) {
 
+  private val holdDown = m.Map.empty[Node, Interface]
   private val table = m.Map.empty[Node, Route]
     .withDefault(Route(_, Connection.CLOSED))
-  private val holdDown = m.Map.empty[Node, Interface]
 
   final private[system] def shutdown(delay: Duration): Unit = scheduleOnce(delay){
     terminate()
@@ -55,8 +55,8 @@ case class Router private[system](node: Node, network: Network) extends Routing(
         open(i)
       case None if holdDown.get(dvp.dest).fold(true)(_ == i) =>
         println(s"$node adding new route to ${dvp.dest}")
-        holdDown.remove(dvp.dest)
-        table.update(dvp.dest, Route(i.node, advWeight + i.link.weight))
+        holdDown -= dvp.dest
+        table += dvp.dest -> Route(i.node, advWeight + i.link.weight)
         advertise(DvPacket(dvp.dest, advWeight + i.link.weight))
       case Some(_) | None =>
     }
@@ -66,15 +66,15 @@ case class Router private[system](node: Node, network: Network) extends Routing(
         close(i)
       case None if nh == i.node =>
         println(s"$node removing route to ${dvp.dest}")
-        holdDown.put(dvp.dest, i)
-        table.remove(dvp.dest)
+        holdDown += dvp.dest -> i
+        table -= dvp.dest
         advertise(dvp)
       case Some(_) | None =>
     }
     case (Route(nh, w), advWeight) => advWeight + i.link.weight match {
       case adv if nh == i.node && adv != w || adv < w =>
         println(s"$node updating route to ${dvp.dest}")
-        table.update(dvp.dest, Route(i.node, adv))
+        table += dvp.dest -> Route(i.node, adv)
         advertise(DvPacket(dvp.dest, adv))
       case _ =>
     }
@@ -95,7 +95,7 @@ case class Router private[system](node: Node, network: Network) extends Routing(
       (dest, Route(_, weight)) <- table
     } route(DvPacket(dest, weight))(i)
 
-    table.update(i.node, Route(i.node, i.link.weight))
+    table += i.node -> Route(i.node, i.link.weight)
     advertise(DvPacket(i.node, i.link.weight))
   }
 
@@ -112,7 +112,7 @@ case class Router private[system](node: Node, network: Network) extends Routing(
     for {
       (dest, Route(nh, _)) <- table
       if dest == i.node || nh == i.node
-    } yield table.remove(dest)
+    } yield table -= dest
 
     advertise(DvPacket(i.node, Connection.CLOSED))
     // advertises itself due to the possibility of this now
