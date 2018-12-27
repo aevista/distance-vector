@@ -19,7 +19,7 @@ object Application extends App {
   for {
     file <- Try(Source.fromFile(args.head)).toOption.toSeq
     line <- file.getLines().toList
-  } yield  line match {
+  } yield line match {
     case Pattern(id1, id2, w, d) => Try((id1.toInt, id2.toInt, w.toInt, d.toDouble)) match {
       case Success((a, b, weight, delay)) => network.connect(Node(a), Node(b))(Link(weight, delay))
       case Failure(e) => println(s"Failed to create connection $e")
