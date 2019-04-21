@@ -6,9 +6,9 @@ import com.network.system.node.Node
 import com.network.system.routing.connection.Link
 import com.network.system.Network
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.io.Source
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Random, Success, Try}
 
 object Application extends App {
 
@@ -30,7 +30,9 @@ object Application extends App {
   network.scheduleShutdown(Node(3))(Duration(1000, TimeUnit.MICROSECONDS))
   network.scheduleShutdown(Node(1))(Duration(2000, TimeUnit.MICROSECONDS))
 
-  network.init()
+  val r = new Random()
+
+  network.init(_ => Duration(r.nextInt(500), TimeUnit.MICROSECONDS))
 
   val convergedTime = network.process()
 

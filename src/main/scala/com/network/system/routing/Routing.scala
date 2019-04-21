@@ -74,9 +74,8 @@ abstract private[system] class Routing(node: Node, network: Network) {
   }
 
   final protected def route(dvp: DvPacket)(i: Interface): Unit = {
-    val _state = state
     val control = Control[Ack]()
-      .filter(_ => _state == Running)
+      .filter(_ => state == Running)
       .andThen(ack => i.send(NetworkPacket(dvp, ack.time)))
 
     println(s"TIME ${"%10d".format(currentTime.toMicros)}: $node routing $dvp to ${i.node}")

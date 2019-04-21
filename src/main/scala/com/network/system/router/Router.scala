@@ -148,7 +148,8 @@ case class Router private[system](node: Node, network: Network) extends Routing(
   } yield interface
 
   final override def toString: String = {
-    table.toList.sortBy(_._1.id)(Ordering.Int)
+    table.toList
+      .sortBy(_._1.id)(Ordering.Int)
       .foldLeft(s"Router ${node.id}") { case (str, (dest, Route(nh, weight))) =>
         str + f"\n${dest.id}%5s|${nh.id}%5s|$weight%5s"
     }.concat("\n")

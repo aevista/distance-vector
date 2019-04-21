@@ -64,8 +64,8 @@ class Network {
     events.enqueue(event)
 
   override final def toString: String = {
-    table.values
-      .toList.sortBy[Int](_.node.id)(Ordering.Int)
+    table.values.toList
+      .sortBy[Int](_.node.id)(Ordering.Int)
       .mkString("\n")
   }
 
